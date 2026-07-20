@@ -1,3 +1,7 @@
+CREATE DATABASE IF NOT EXISTS XnetMLops DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+USE XnetMLops;
+SET NAMES utf8mb4;
+
 CREATE TABLE XnetMLops.xnet_mlops_user_infos (
                                                  Id                  INT AUTO_INCREMENT PRIMARY KEY NOT NULL COMMENT '自增ID',
                                                  uid                 VARCHAR(255) NOT NULL COMMENT '唯一编码ID',
@@ -16,7 +20,7 @@ INSERT INTO XnetMLops.xnet_mlops_user_infos
 (uid, phone, realName, username,userId, roles, permission, roles_failure_time, create_time, update_time)
 VALUES (
            '08626596595',
-           '13800138000',
+           '12345678900',
            '张三',
            '猫又',
            'c00000000',
@@ -201,8 +205,8 @@ CREATE TABLE XnetMLops.xnet_mlops_dpp_dataset (
                                                   updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 ) COMMENT '数据集表';
 
-CREATE INDEX idx_dataset_tenant ON dataset(tenant_uid);
-CREATE INDEX idx_dataset_team ON dataset(team_uid);
+CREATE INDEX idx_dataset_tenant ON XnetMLops.xnet_mlops_dpp_dataset(tenant_uid);
+CREATE INDEX idx_dataset_team ON XnetMLops.xnet_mlops_dpp_dataset(team_uid);
 
 
 CREATE TABLE XnetMLops.xnet_mlops_mtp_algorithms (
@@ -454,6 +458,7 @@ CREATE TABLE IF NOT EXISTS `xnet_mlops_mep_api_key` (
     `name` VARCHAR(100) NOT NULL COMMENT '密钥名称',
     `key_hash` VARCHAR(128) NOT NULL COMMENT '密钥哈希值',
     `key_masked` VARCHAR(64) NOT NULL COMMENT '脱敏显示的密钥',
+    `encrypted_key` VARCHAR(500) DEFAULT NULL COMMENT 'AES加密存储的原始密钥（用于OpenClaw等服务引用）',
     `provider` VARCHAR(32) NOT NULL COMMENT '服务商: ollama, openai, deepseek, custom',
     `description` VARCHAR(500) DEFAULT NULL COMMENT '描述',
     `status` VARCHAR(32) NOT NULL DEFAULT 'active' COMMENT '状态: active, disabled, expired',
@@ -599,7 +604,7 @@ INSERT INTO `xnet_mlops_mep_llm_service` (`uid`, `name`, `type`, `description`, 
 
 -- 示例部署节点（使用正确的JSON格式）
 INSERT INTO `xnet_mlops_mep_deploy_node` (`uid`, `name`, `ip_address`, `port`, `status`, `cpu_cores`, `memory_gb`, `gpu_info`, `docker_version`, `nginx_status`, `labels`, `description`, `created_by`) VALUES
-                                                                                                                                                                                                            ('node-001', 'GPU节点-01', '127.0.0.1', 22, 'online', 32, 64, 'NVIDIA RTX 4090 x2', '24.0.7', 'running', '["gpu", "production"]', '生产环境GPU计算节点', 'admin'),
-                                                                                                                                                                                                            ('node-002', 'CPU节点-01', '127.0.0.1', 22, 'online', 16, 32, NULL, '24.0.7', 'running', '["cpu", "production"]', '生产环境CPU计算节点', 'admin'),
-                                                                                                                                                                                                            ('node-003', '测试节点-01', '127.0.0.1', 22, 'offline', 8, 16, NULL, '23.0.6', 'stopped', '["test"]', '测试环境节点', 'admin');
+                                                                                                                                                                                                            ('node-001', 'GPU节点-01', '192.168.10.101', 22, 'online', 32, 64, 'NVIDIA RTX 4090 x2', '24.0.7', 'running', '["gpu", "production"]', '生产环境GPU计算节点', 'admin'),
+                                                                                                                                                                                                            ('node-002', 'CPU节点-01', '192.168.10.102', 22, 'online', 16, 32, NULL, '24.0.7', 'running', '["cpu", "production"]', '生产环境CPU计算节点', 'admin'),
+                                                                                                                                                                                                            ('node-003', '测试节点-01', '192.168.10.103', 22, 'offline', 8, 16, NULL, '23.0.6', 'stopped', '["test"]', '测试环境节点', 'admin');
 

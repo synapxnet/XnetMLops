@@ -2,6 +2,8 @@
 -- DPP RAG Knowledge Base 数据库表结构
 -- ============================================
 
+SET NAMES utf8mb4;
+
 -- 1. 知识库表
 CREATE TABLE IF NOT EXISTS `xnet_mlops_dpp_knowledge_base` (
   `id` BIGINT NOT NULL AUTO_INCREMENT COMMENT '主键ID',

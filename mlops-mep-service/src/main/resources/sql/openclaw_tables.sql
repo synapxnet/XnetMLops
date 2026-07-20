@@ -1,6 +1,8 @@
 -- OpenClaw实例管理表
 -- 用于MEP模块管理OpenClaw个人助手的部署实例
 
+SET NAMES utf8mb4;
+
 CREATE TABLE IF NOT EXISTS `xnet_mlops_mep_openclaw_instance` (
     `id` BIGINT NOT NULL AUTO_INCREMENT COMMENT '主键ID',
     `uid` VARCHAR(64) NOT NULL COMMENT '唯一标识符',

@@ -130,6 +130,21 @@ public class JobController {
             @RequestParam(required = false, defaultValue = "false") boolean includeConsole) {
 
         try {
+            if (jobName.startsWith("JOB-DEMO-")) {
+                TaskInfo demoJob = taskInfoService.getJobByJobUid(jobName);
+                if (demoJob == null) {
+                    return ResponseUtils.error(404, "构建信息不存在");
+                }
+
+                Map<String, Object> response = readDemoJobContent(demoJob);
+                response.put("jobName", jobName);
+                response.putIfAbsent("overallStatus", demoJob.getJob_status());
+                response.putIfAbsent("stages", Collections.emptyList());
+                response.putIfAbsent("buildUrl", "");
+                response.putIfAbsent("queueUrl", "");
+                return ResponseUtils.success(response);
+            }
+
             // 从Redis获取构建状态
             JenkinsBuildStatus status = jenkinsService.getBuildStatusFromJenkins(jobName);
 
@@ -399,6 +414,20 @@ public class JobController {
     @GetMapping("/schedule/status/{jobName}")
     public ResponseEntity<Map<String, Object>> getScheduleStatus(@PathVariable String jobName) {
         try {
+            if (jobName.startsWith("SCHEDULE-DEMO-")) {
+                TaskInfo demoSchedule = taskScheduleInfoService.getJobByJobUid(jobName);
+                if (demoSchedule == null) {
+                    return ResponseUtils.error(404, "调度配置不存在");
+                }
+
+                Map<String, Object> response = new LinkedHashMap<>();
+                response.put("jobName", jobName);
+                response.put("scheduleConfig", readDemoJobContent(demoSchedule));
+                response.put("nextBuildNumber", 1);
+                response.put("jobHistoryBuild", Collections.emptyList());
+                return ResponseUtils.success(response);
+            }
+
             // 获取调度配置
             Map<String, Object> scheduleConfig = getScheduleConfigFromDb(jobName);
 //            if (scheduleConfig == null) {
@@ -554,6 +583,18 @@ public class JobController {
         } catch (Exception e) {
             System.err.println("获取调度配置失败: {}" + e.getMessage());
             return null;
+        }
+    }
+
+    private Map<String, Object> readDemoJobContent(TaskInfo job) {
+        if (job.getJob_content() == null || job.getJob_content().isBlank()) {
+            return new LinkedHashMap<>();
+        }
+
+        try {
+            return new LinkedHashMap<>(objectMapper.readValue(job.getJob_content(), Map.class));
+        } catch (Exception e) {
+            return new LinkedHashMap<>();
         }
     }
 
