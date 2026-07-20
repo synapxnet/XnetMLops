@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.synapxnet.mlopsxaaservice.mapper.WorkflowMapper">
+
+    <resultMap id="WorkflowResultMap" type="com.synapxnet.mlopsxaaservice.entity.Workflow">
+        <id property="id" column="id"/>
+        <result property="uid" column="uid"/>
+        <result property="name" column="name"/>
+        <result property="description" column="description"/>
+        <result property="type" column="type"/>
+        <result property="status" column="status"/>
+        <result property="graphJson" column="graph_json"/>
+        <result property="configJson" column="config_json"/>
+        <result property="version" column="version"/>
+        <result property="creatorId" column="creator_id"/>
+        <result property="creatorName" column="creator_name"/>
+        <result property="tenantUid" column="tenant_uid"/>
+        <result property="deptUid" column="dept_uid"/>
+        <result property="teamUid" column="team_uid"/>
+        <result property="createdAt" column="created_at"/>
+        <result property="updatedAt" column="updated_at"/>
+    </resultMap>
+
+    <insert id="insert" parameterType="com.synapxnet.mlopsxaaservice.entity.Workflow" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO xnet_mlops_xaa_workflow (uid, name, description, type, status, graph_json, config_json,
+                                  version, creator_id, creator_name, tenant_uid, dept_uid, team_uid,
+                                  created_at, updated_at)
+        VALUES (#{uid}, #{name}, #{description}, #{type}, #{status}, #{graphJson}, #{configJson},
+                #{version}, #{creatorId}, #{creatorName}, #{tenantUid}, #{deptUid}, #{teamUid},
+                NOW(), NOW())
+    </insert>
+
+    <select id="selectById" resultMap="WorkflowResultMap">
+        SELECT * FROM xnet_mlops_xaa_workflow WHERE id = #{id}
+    </select>
+
+    <select id="selectByUid" resultMap="WorkflowResultMap">
+        SELECT * FROM xnet_mlops_xaa_workflow WHERE uid = #{uid}
+    </select>
+
+    <select id="selectAll" resultMap="WorkflowResultMap">
+        SELECT * FROM xnet_mlops_xaa_workflow ORDER BY created_at DESC
+    </select>
+
+    <select id="selectByStatus" resultMap="WorkflowResultMap">
+        SELECT * FROM xnet_mlops_xaa_workflow WHERE status = #{status} ORDER BY created_at DESC
+    </select>
+
+    <select id="selectByCreatorId" resultMap="WorkflowResultMap">
+        SELECT * FROM xnet_mlops_xaa_workflow WHERE creator_id = #{creatorId} ORDER BY created_at DESC
+    </select>
+
+    <select id="selectByTenantUid" resultMap="WorkflowResultMap">
+        SELECT * FROM xnet_mlops_xaa_workflow WHERE tenant_uid = #{tenantUid} ORDER BY created_at DESC
+    </select>
+
+    <update id="update" parameterType="com.synapxnet.mlopsxaaservice.entity.Workflow">
+        UPDATE xnet_mlops_xaa_workflow
+        SET name = #{name},
+            description = #{description},
+            type = #{type},
+            status = #{status},
+            graph_json = #{graphJson},
+            config_json = #{configJson},
+            version = #{version},
+            updated_at = NOW()
+        WHERE id = #{id}
+    </update>
+
+    <update id="updateStatus">
+        UPDATE xnet_mlops_xaa_workflow SET status = #{status}, updated_at = NOW() WHERE id = #{id}
+    </update>
+
+    <delete id="deleteById">
+        DELETE FROM xnet_mlops_xaa_workflow WHERE id = #{id}
+    </delete>
+
+    <select id="countByName" resultType="int">
+        SELECT COUNT(*) FROM xnet_mlops_xaa_workflow
+        WHERE name = #{name}
+        <if test="excludeId != null">
+            AND id != #{excludeId}
+        </if>
+    </select>
+
+</mapper>

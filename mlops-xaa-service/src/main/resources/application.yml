@@ -1,0 +1,29 @@
+server:
+  port: 8186
+
+spring:
+  application:
+    name: mlops-xaa-service
+  datasource:
+    url: jdbc:mysql://${DB_HOST:localhost}:${DB_PORT:3306}/XnetMLops?useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true
+    username: root
+    password: ${DB_PASSWORD:}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+
+mybatis:
+  mapper-locations: classpath:mapper/*.xml
+  type-aliases-package: com.synapxnet.mlopsxaaservice.entity
+  configuration:
+    map-underscore-to-camel-case: true
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+
+logging:
+  level:
+    com.synapxnet.mlopsxaaservice: DEBUG
+
+# Service endpoints for DPP, MTP, MEP
+xaa:
+  services:
+    dpp-url: ${DPP_SERVICE_URL:http://localhost:8081}
+    mtp-url: ${MTP_SERVICE_URL:http://localhost:8082}
+    mep-url: ${MEP_SERVICE_URL:http://127.0.0.1:8184}

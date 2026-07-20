@@ -1,0 +1,151 @@
+version: '3.8'
+
+services:
+  # ==================== 前端 Nginx ====================
+  mlops-web:
+    image: nginx:alpine
+    container_name: mlops-web
+    ports:
+      - "${WEB_PORT:-80}:80"
+    volumes:
+      - ${WEB_DIST_PATH:-../XnetMLops-web/playground/dist}:/usr/share/nginx/html:ro
+      - ./nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      - mlops-login
+      - mlops-smp-service
+      - mlops-dpp-service
+      - mlops-mtp-service
+      - mlops-mep-service
+      - mlops-xaa-service
+    networks:
+      - mlops-net
+    restart: unless-stopped
+
+  # ==================== 后端微服务 ====================
+  mlops-login:
+    build:
+      context: ./mlops-login
+    image: mlops-login:${TAG:-latest}
+    container_name: mlops-login
+    ports:
+      - "${LOGIN_PORT:-8181}:8181"
+    environment:
+      - DB_HOST=${DB_HOST:?DB_HOST is required}
+      - DB_PORT=${DB_PORT:-3306}
+      - DB_PASSWORD=${DB_PASSWORD:?DB_PASSWORD is required}
+      - REDIS_HOST=${REDIS_HOST:?REDIS_HOST is required}
+      - REDIS_PORT=${REDIS_PORT:-6379}
+      - JWT_SECRET=${JWT_SECRET:?JWT_SECRET is required}
+    networks:
+      - mlops-net
+    restart: unless-stopped
+
+  mlops-dpp-service:
+    build:
+      context: ./mlops-dpp-service
+    image: mlops-dpp-service:${TAG:-latest}
+    container_name: mlops-dpp-service
+    ports:
+      - "${DPP_PORT:-8182}:8182"
+    environment:
+      - DB_HOST=${DB_HOST:?DB_HOST is required}
+      - DB_PORT=${DB_PORT:-3306}
+      - DB_PASSWORD=${DB_PASSWORD:?DB_PASSWORD is required}
+      - HDFS_HOST=${HDFS_HOST:?HDFS_HOST is required}
+      - HDFS_PORT=${HDFS_PORT:-8020}
+      - JENKINS_HOST=${JENKINS_HOST:?JENKINS_HOST is required}
+      - JENKINS_PORT=${JENKINS_PORT:-8080}
+      - JENKINS_API_TOKEN=${JENKINS_API_TOKEN:?JENKINS_API_TOKEN is required}
+    volumes:
+      - mlops-upload-data:/data/tmp
+    networks:
+      - mlops-net
+    restart: unless-stopped
+
+  mlops-mtp-service:
+    build:
+      context: ./mlops-mtp-service
+    image: mlops-mtp-service:${TAG:-latest}
+    container_name: mlops-mtp-service
+    ports:
+      - "${MTP_PORT:-8183}:8183"
+    environment:
+      - DB_HOST=${DB_HOST:?DB_HOST is required}
+      - DB_PORT=${DB_PORT:-3306}
+      - DB_PASSWORD=${DB_PASSWORD:?DB_PASSWORD is required}
+      - HDFS_HOST=${HDFS_HOST:?HDFS_HOST is required}
+      - HDFS_PORT=${HDFS_PORT:-8020}
+      - JENKINS_HOST=${JENKINS_HOST:?JENKINS_HOST is required}
+      - JENKINS_PORT=${JENKINS_PORT:-8080}
+      - JENKINS_API_TOKEN=${JENKINS_API_TOKEN:?JENKINS_API_TOKEN is required}
+      - REDIS_HOST=${REDIS_HOST:?REDIS_HOST is required}
+      - REDIS_PORT=${REDIS_PORT:-6379}
+    volumes:
+      - mlops-upload-data:/data/tmp
+    networks:
+      - mlops-net
+    restart: unless-stopped
+
+  mlops-mep-service:
+    build:
+      context: ./mlops-mep-service
+    image: mlops-mep-service:${TAG:-latest}
+    container_name: mlops-mep-service
+    ports:
+      - "${MEP_PORT:-8184}:8184"
+    environment:
+      - DB_HOST=${DB_HOST:?DB_HOST is required}
+      - DB_PORT=${DB_PORT:-3306}
+      - DB_PASSWORD=${DB_PASSWORD:?DB_PASSWORD is required}
+      - MTP_SERVICE_URL=http://mlops-mtp-service:8183
+      - SMP_SERVICE_URL=http://mlops-smp-service:8185
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    networks:
+      - mlops-net
+    restart: unless-stopped
+
+  mlops-smp-service:
+    build:
+      context: ./mlops-smp-service
+    image: mlops-smp-service:${TAG:-latest}
+    container_name: mlops-smp-service
+    ports:
+      - "${SMP_PORT:-8185}:8185"
+    environment:
+      - DB_HOST=${DB_HOST:?DB_HOST is required}
+      - DB_PORT=${DB_PORT:-3306}
+      - DB_PASSWORD=${DB_PASSWORD:?DB_PASSWORD is required}
+      - HDFS_HOST=${HDFS_HOST:?HDFS_HOST is required}
+      - HDFS_PORT=${HDFS_PORT:-8020}
+      - JENKINS_HOST=${JENKINS_HOST:?JENKINS_HOST is required}
+      - JENKINS_PORT=${JENKINS_PORT:-8080}
+      - JENKINS_API_TOKEN=${JENKINS_API_TOKEN:?JENKINS_API_TOKEN is required}
+    networks:
+      - mlops-net
+    restart: unless-stopped
+
+  mlops-xaa-service:
+    build:
+      context: ./mlops-xaa-service
+    image: mlops-xaa-service:${TAG:-latest}
+    container_name: mlops-xaa-service
+    ports:
+      - "${XAA_PORT:-8186}:8186"
+    environment:
+      - DB_HOST=${DB_HOST:?DB_HOST is required}
+      - DB_PORT=${DB_PORT:-3306}
+      - DB_PASSWORD=${DB_PASSWORD:?DB_PASSWORD is required}
+      - DPP_SERVICE_URL=http://mlops-dpp-service:8182
+      - MTP_SERVICE_URL=http://mlops-mtp-service:8183
+      - MEP_SERVICE_URL=http://mlops-mep-service:8184
+    networks:
+      - mlops-net
+    restart: unless-stopped
+
+networks:
+  mlops-net:
+    driver: bridge
+
+volumes:
+  mlops-upload-data:

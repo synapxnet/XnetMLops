@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.synapxnet.mlopsxaaservice.mapper.WorkflowEdgeMapper">
+
+    <resultMap id="WorkflowEdgeResultMap" type="com.synapxnet.mlopsxaaservice.entity.WorkflowEdge">
+        <id property="id" column="id"/>
+        <result property="uid" column="uid"/>
+        <result property="workflowId" column="workflow_id"/>
+        <result property="sourceNodeId" column="source_node_id"/>
+        <result property="sourceHandle" column="source_handle"/>
+        <result property="targetNodeId" column="target_node_id"/>
+        <result property="targetHandle" column="target_handle"/>
+        <result property="edgeType" column="edge_type"/>
+        <result property="conditionJson" column="condition_json"/>
+        <result property="sortOrder" column="sort_order"/>
+        <result property="createdAt" column="created_at"/>
+        <result property="updatedAt" column="updated_at"/>
+    </resultMap>
+
+    <insert id="insert" parameterType="com.synapxnet.mlopsxaaservice.entity.WorkflowEdge" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO xnet_mlops_xaa_workflow_edge (uid, workflow_id, source_node_id, source_handle, target_node_id,
+                                       target_handle, edge_type, condition_json, sort_order,
+                                       created_at, updated_at)
+        VALUES (#{uid}, #{workflowId}, #{sourceNodeId}, #{sourceHandle}, #{targetNodeId},
+                #{targetHandle}, #{edgeType}, #{conditionJson}, #{sortOrder}, NOW(), NOW())
+    </insert>
+
+    <insert id="batchInsert" parameterType="list">
+        INSERT INTO xnet_mlops_xaa_workflow_edge (uid, workflow_id, source_node_id, source_handle, target_node_id,
+                                       target_handle, edge_type, condition_json, sort_order,
+                                       created_at, updated_at)
+        VALUES
+        <foreach collection="edges" item="edge" separator=",">
+            (#{edge.uid}, #{edge.workflowId}, #{edge.sourceNodeId}, #{edge.sourceHandle},
+             #{edge.targetNodeId}, #{edge.targetHandle}, #{edge.edgeType}, #{edge.conditionJson},
+             #{edge.sortOrder}, NOW(), NOW())
+        </foreach>
+    </insert>
+
+    <select id="selectById" resultMap="WorkflowEdgeResultMap">
+        SELECT * FROM xnet_mlops_xaa_workflow_edge WHERE id = #{id}
+    </select>
+
+    <select id="selectByWorkflowId" resultMap="WorkflowEdgeResultMap">
+        SELECT * FROM xnet_mlops_xaa_workflow_edge WHERE workflow_id = #{workflowId} ORDER BY sort_order ASC
+    </select>
+
+    <select id="selectBySourceNodeId" resultMap="WorkflowEdgeResultMap">
+        SELECT * FROM xnet_mlops_xaa_workflow_edge WHERE source_node_id = #{sourceNodeId}
+    </select>
+
+    <select id="selectByTargetNodeId" resultMap="WorkflowEdgeResultMap">
+        SELECT * FROM xnet_mlops_xaa_workflow_edge WHERE target_node_id = #{targetNodeId}
+    </select>
+
+    <update id="update" parameterType="com.synapxnet.mlopsxaaservice.entity.WorkflowEdge">
+        UPDATE xnet_mlops_xaa_workflow_edge
+        SET source_node_id = #{sourceNodeId},
+            source_handle = #{sourceHandle},
+            target_node_id = #{targetNodeId},
+            target_handle = #{targetHandle},
+            edge_type = #{edgeType},
+            condition_json = #{conditionJson},
+            sort_order = #{sortOrder},
+            updated_at = NOW()
+        WHERE id = #{id}
+    </update>
+
+    <delete id="deleteById">
+        DELETE FROM xnet_mlops_xaa_workflow_edge WHERE id = #{id}
+    </delete>
+
+    <delete id="deleteByWorkflowId">
+        DELETE FROM xnet_mlops_xaa_workflow_edge WHERE workflow_id = #{workflowId}
+    </delete>
+
+</mapper>

@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.synapxnet.mlopsxaaservice.mapper.SkillCategoryMapper">
+
+    <resultMap id="SkillCategoryResultMap" type="com.synapxnet.mlopsxaaservice.entity.SkillCategory">
+        <id property="id" column="id"/>
+        <result property="key" column="key"/>
+        <result property="name" column="name"/>
+        <result property="nameEn" column="name_en"/>
+        <result property="description" column="description"/>
+        <result property="icon" column="icon"/>
+        <result property="color" column="color"/>
+        <result property="sortOrder" column="sort_order"/>
+        <result property="createdAt" column="created_at"/>
+        <result property="updatedAt" column="updated_at"/>
+    </resultMap>
+
+    <select id="findAll" resultMap="SkillCategoryResultMap">
+        SELECT * FROM xnet_mlops_xaa_skill_category ORDER BY sort_order ASC
+    </select>
+
+    <select id="findById" resultMap="SkillCategoryResultMap">
+        SELECT * FROM xnet_mlops_xaa_skill_category WHERE id = #{id}
+    </select>
+
+    <select id="findByKey" resultMap="SkillCategoryResultMap">
+        SELECT * FROM xnet_mlops_xaa_skill_category WHERE `key` = #{key}
+    </select>
+
+    <insert id="insert" parameterType="com.synapxnet.mlopsxaaservice.entity.SkillCategory" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO xnet_mlops_xaa_skill_category (`key`, name, name_en, description, icon, color, sort_order, created_at, updated_at)
+        VALUES (#{key}, #{name}, #{nameEn}, #{description}, #{icon}, #{color}, #{sortOrder}, NOW(), NOW())
+    </insert>
+
+    <update id="update" parameterType="com.synapxnet.mlopsxaaservice.entity.SkillCategory">
+        UPDATE xnet_mlops_xaa_skill_category
+        SET name = #{name},
+            name_en = #{nameEn},
+            description = #{description},
+            icon = #{icon},
+            color = #{color},
+            sort_order = #{sortOrder},
+            updated_at = NOW()
+        WHERE id = #{id}
+    </update>
+
+    <delete id="deleteById">
+        DELETE FROM xnet_mlops_xaa_skill_category WHERE id = #{id}
+    </delete>
+
+</mapper>

@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.synapxnet.mlopsxaaservice.mapper.SkillInstallationMapper">
+
+    <resultMap id="SkillInstallationResultMap" type="com.synapxnet.mlopsxaaservice.entity.SkillInstallation">
+        <id property="id" column="id"/>
+        <result property="skillId" column="skill_id"/>
+        <result property="tenantUid" column="tenant_uid"/>
+        <result property="installedBy" column="installed_by"/>
+        <result property="installedAt" column="installed_at"/>
+        <result property="configOverride" column="config_override"/>
+        <result property="status" column="status"/>
+    </resultMap>
+
+    <select id="findByTenantUid" resultMap="SkillInstallationResultMap">
+        SELECT * FROM xnet_mlops_xaa_skill_installation WHERE tenant_uid = #{tenantUid} ORDER BY installed_at DESC
+    </select>
+
+    <select id="findBySkillIdAndTenantUid" resultMap="SkillInstallationResultMap">
+        SELECT * FROM xnet_mlops_xaa_skill_installation WHERE skill_id = #{skillId} AND tenant_uid = #{tenantUid}
+    </select>
+
+    <insert id="insert" parameterType="com.synapxnet.mlopsxaaservice.entity.SkillInstallation" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO xnet_mlops_xaa_skill_installation (skill_id, tenant_uid, installed_by, installed_at, config_override, status)
+        VALUES (#{skillId}, #{tenantUid}, #{installedBy}, NOW(), #{configOverride}, #{status})
+    </insert>
+
+    <update id="update" parameterType="com.synapxnet.mlopsxaaservice.entity.SkillInstallation">
+        UPDATE xnet_mlops_xaa_skill_installation
+        SET config_override = #{configOverride},
+            status = #{status}
+        WHERE id = #{id}
+    </update>
+
+    <delete id="deleteBySkillIdAndTenantUid">
+        DELETE FROM xnet_mlops_xaa_skill_installation WHERE skill_id = #{skillId} AND tenant_uid = #{tenantUid}
+    </delete>
+
+    <select id="countBySkillId" resultType="int">
+        SELECT COUNT(*) FROM xnet_mlops_xaa_skill_installation WHERE skill_id = #{skillId}
+    </select>
+
+</mapper>

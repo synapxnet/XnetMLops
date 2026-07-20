@@ -1,0 +1,42 @@
+server:
+  port: 8184
+
+spring:
+  application:
+    name: mlops-mep-service
+  datasource:
+    url: jdbc:mysql://${DB_HOST:localhost}:${DB_PORT:3306}/XnetMLops?useSSL=false&serverTimezone=UTC
+    username: root
+    password: ${DB_PASSWORD:}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+
+mybatis:
+  mapper-locations: classpath:mapper/*.xml
+  type-aliases-package: com.synapxnet.mlopsmepservice.entity
+  configuration:
+    map-underscore-to-camel-case: true
+
+# Docker配置
+docker:
+  host: unix:///var/run/docker.sock
+  api-version: 1.43
+
+# Nginx配置
+nginx:
+  config-path: /etc/nginx/conf.d
+  reload-command: nginx -s reload
+
+# MTP服务配置
+mtp:
+  service:
+    url: ${MTP_SERVICE_URL:http://localhost:8183}
+
+# SMP服务配置
+smp:
+  service:
+    url: ${SMP_SERVICE_URL:http://localhost:8185}
+
+logging:
+  level:
+    com.synapxnet.mlopsmepservice: DEBUG
+    org.springframework.web: INFO

@@ -1,0 +1,92 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<flow-definition plugin="workflow-job@2.40">
+    <actions/>
+    <description>${description}</description>
+    <keepDependencies>false</keepDependencies>
+    <properties>
+        <hudson.model.ParametersDefinitionProperty>
+            <parameterDefinitions>
+                <!-- 在参数定义部分新增 Docker 相关参数 -->
+                <hudson.model.StringParameterDefinition>
+                    <name>DOCKER_IMAGE_NAME</name>
+                    <description>Docker 镜像名称</description>
+                    <defaultValue>${dockerImageName}</defaultValue>
+                </hudson.model.StringParameterDefinition>
+                <hudson.model.StringParameterDefinition>
+                    <name>DOCKER_IMAGE_TAGS</name>
+                    <description>Docker 镜像标签（多个用逗号分隔）</description>
+                    <defaultValue>${dockerImageTags}</defaultValue>
+                </hudson.model.StringParameterDefinition>
+                <hudson.model.StringParameterDefinition>
+                    <name>HARBOR_URL</name>
+                    <description>Harbor 仓库地址</description>
+                    <defaultValue>${harborUrl}</defaultValue>
+                </hudson.model.StringParameterDefinition>
+                <hudson.model.StringParameterDefinition>
+                    <name>DOCKERFILE_CONTENT</name>
+                    <description>Dockerfile 内容</description>
+                    <defaultValue>${dockerfileContent}</defaultValue>
+                </hudson.model.StringParameterDefinition>
+                <hudson.model.StringParameterDefinition>
+                    <name>HARBOR_CREDENTIALS_ID</name>
+                    <description>Harbor 凭证 ID</description>
+                    <defaultValue>${harborCredentialsId}</defaultValue>
+                </hudson.model.StringParameterDefinition><!-- 在流水线脚本中增加 Docker 构建阶段 -->
+            </parameterDefinitions>
+        </hudson.model.ParametersDefinitionProperty>
+    </properties>
+    <definition class="org.jenkinsci.plugins.workflow.cps.CpsFlowDefinition" plugin="workflow-cps@2.90">
+
+
+
+<script><![CDATA[
+pipeline {
+    agent any
+    stages {
+
+        stage('构建 Docker 镜像') {
+            steps {
+                script {
+                    // 创建 Dockerfile
+                    writeFile file: 'Dockerfile', text: "${DOCKERFILE_CONTENT}"
+
+                    // 登录 Harbor 仓库
+                    withCredentials([usernamePassword(
+                        credentialsId: "${HARBOR_CREDENTIALS_ID}",
+                        usernameVariable: 'HARBOR_USER',
+                        passwordVariable: 'HARBOR_PASSWORD'
+                    )]) {
+                        sh """
+                            sudo docker login -u $HARBOR_USER -p $HARBOR_PASSWORD ${HARBOR_URL}
+                        """
+                    }
+                    def cleanHarborUrl = "${HARBOR_URL}"
+                        .replaceFirst(/^https?:\/\//, '')  // 移除 http:// 或 https://
+
+
+                    // 构建并推送镜像（支持多个标签）
+                    def tags = "${DOCKER_IMAGE_TAGS}".split(',').collect { tag ->
+                        "${cleanHarborUrl}/xnet-mlops-smp-python/${DOCKER_IMAGE_NAME}:${tag.trim()}"
+                    }
+
+                    tags.each { fullTag ->
+                        sh """
+                            sudo docker build -t $fullTag
+                            sudo docker push $fullTag
+                        """
+                    }
+
+                    // 清理本地镜像
+                    tags.each { fullTag ->
+                        sh "sudo docker rmi $fullTag || true"
+                    }
+                }
+            }
+        }
+    }
+}
+]]></script>
+        <sandbox>true</sandbox>
+    </definition>
+    <triggers/>
+</flow-definition>

@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.synapxnet.mlopsxaaservice.mapper.WorkflowExecutionMapper">
+
+    <resultMap id="WorkflowExecutionResultMap" type="com.synapxnet.mlopsxaaservice.entity.WorkflowExecution">
+        <id property="id" column="id"/>
+        <result property="uid" column="uid"/>
+        <result property="workflowId" column="workflow_id"/>
+        <result property="status" column="status"/>
+        <result property="inputsJson" column="inputs_json"/>
+        <result property="outputsJson" column="outputs_json"/>
+        <result property="errorMessage" column="error_message"/>
+        <result property="startedAt" column="started_at"/>
+        <result property="finishedAt" column="finished_at"/>
+        <result property="elapsedTime" column="elapsed_time"/>
+        <result property="triggeredBy" column="triggered_by"/>
+        <result property="triggerType" column="trigger_type"/>
+        <result property="createdAt" column="created_at"/>
+        <result property="updatedAt" column="updated_at"/>
+    </resultMap>
+
+    <insert id="insert" parameterType="com.synapxnet.mlopsxaaservice.entity.WorkflowExecution" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO xnet_mlops_xaa_workflow_execution (uid, workflow_id, status, inputs_json, outputs_json,
+                                            error_message, started_at, finished_at, elapsed_time,
+                                            triggered_by, trigger_type, created_at, updated_at)
+        VALUES (#{uid}, #{workflowId}, #{status}, #{inputsJson}, #{outputsJson},
+                #{errorMessage}, #{startedAt}, #{finishedAt}, #{elapsedTime},
+                #{triggeredBy}, #{triggerType}, NOW(), NOW())
+    </insert>
+
+    <select id="selectById" resultMap="WorkflowExecutionResultMap">
+        SELECT * FROM xnet_mlops_xaa_workflow_execution WHERE id = #{id}
+    </select>
+
+    <select id="selectByUid" resultMap="WorkflowExecutionResultMap">
+        SELECT * FROM xnet_mlops_xaa_workflow_execution WHERE uid = #{uid}
+    </select>
+
+    <select id="selectByWorkflowId" resultMap="WorkflowExecutionResultMap">
+        SELECT * FROM xnet_mlops_xaa_workflow_execution WHERE workflow_id = #{workflowId} ORDER BY created_at DESC
+    </select>
+
+    <select id="selectByStatus" resultMap="WorkflowExecutionResultMap">
+        SELECT * FROM xnet_mlops_xaa_workflow_execution WHERE status = #{status} ORDER BY created_at DESC
+    </select>
+
+    <select id="selectRunning" resultMap="WorkflowExecutionResultMap">
+        SELECT * FROM xnet_mlops_xaa_workflow_execution WHERE status IN ('scheduled', 'running', 'paused') ORDER BY created_at ASC
+    </select>
+
+    <update id="update" parameterType="com.synapxnet.mlopsxaaservice.entity.WorkflowExecution">
+        UPDATE xnet_mlops_xaa_workflow_execution
+        SET status = #{status},
+            inputs_json = #{inputsJson},
+            outputs_json = #{outputsJson},
+            error_message = #{errorMessage},
+            started_at = #{startedAt},
+            finished_at = #{finishedAt},
+            elapsed_time = #{elapsedTime},
+            updated_at = NOW()
+        WHERE id = #{id}
+    </update>
+
+    <update id="updateStatus">
+        UPDATE xnet_mlops_xaa_workflow_execution
+        SET status = #{status},
+            error_message = #{errorMessage},
+            updated_at = NOW()
+        WHERE id = #{id}
+    </update>
+
+    <delete id="deleteById">
+        DELETE FROM xnet_mlops_xaa_workflow_execution WHERE id = #{id}
+    </delete>
+
+    <delete id="deleteByWorkflowId">
+        DELETE FROM xnet_mlops_xaa_workflow_execution WHERE workflow_id = #{workflowId}
+    </delete>
+
+</mapper>

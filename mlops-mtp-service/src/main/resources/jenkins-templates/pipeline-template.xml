@@ -1,0 +1,358 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<flow-definition plugin="workflow-job@2.40">
+    <actions/>
+    <description>${description}</description>
+    <keepDependencies>false</keepDependencies>
+    <properties>
+        <hudson.model.ParametersDefinitionProperty>
+            <parameterDefinitions>
+                <!-- 原有参数 -->
+                <hudson.model.StringParameterDefinition>
+                    <name>GIT_BRANCH</name>
+                    <description>Git branch to build</description>
+                    <defaultValue>${defaultBranch}</defaultValue>
+                </hudson.model.StringParameterDefinition>
+                <hudson.model.StringParameterDefinition>
+                    <name>ENVIRONMENT</name>
+                    <description>Deployment environment</description>
+                    <defaultValue>${defaultEnvironment}</defaultValue>
+                </hudson.model.StringParameterDefinition>
+
+                <!-- 新增参数 -->
+                <hudson.model.StringParameterDefinition>
+                    <name>DATASET_PATH</name>
+                    <description>HDFS dataset path to pull</description>
+                    <defaultValue>${datasetPath}</defaultValue>
+                </hudson.model.StringParameterDefinition>
+                <hudson.model.StringParameterDefinition>
+                    <name>DATASET_FOLDER</name>
+                    <description>Local dataset folder name</description>
+                    <defaultValue>${datasetFolder}</defaultValue>
+                </hudson.model.StringParameterDefinition>
+                <hudson.model.StringParameterDefinition>
+                    <name>GIT_REPO_URL</name>
+                    <description>Git repository URL</description>
+                    <defaultValue>${gitRepoUrl}</defaultValue>
+                </hudson.model.StringParameterDefinition>
+                <hudson.model.StringParameterDefinition>
+                    <name>CREDENTIALS_ID</name>
+                    <description>Git credentials ID</description>
+                    <defaultValue>${credentialsId}</defaultValue>
+                </hudson.model.StringParameterDefinition>
+                <hudson.model.StringParameterDefinition>
+                    <name>PYTHON_ENTRY</name>
+                    <description>算法入口</description>
+                    <defaultValue>${pythonEntryPoint}</defaultValue>
+                </hudson.model.StringParameterDefinition>
+                <hudson.model.StringParameterDefinition>
+                    <name>CONTAINER_NAME</name>
+                    <description>容器名称</description>
+                    <defaultValue>${containerName}</defaultValue>
+                </hudson.model.StringParameterDefinition>
+                <hudson.model.StringParameterDefinition>
+                    <name>MODEL_OUTPUT_PATH</name>
+                    <description>模型输出</description>
+                    <defaultValue>${modelOutputPath}</defaultValue>
+                </hudson.model.StringParameterDefinition>
+                <hudson.model.StringParameterDefinition>
+                    <name>CONTAINER_TO_REMOVE</name>
+                    <description>容器清理</description>
+                    <defaultValue>${containerToRemove}</defaultValue>
+                </hudson.model.StringParameterDefinition>
+                <hudson.model.StringParameterDefinition>
+                    <name>ALGORITHM_NAME</name>
+                    <description>算法名称</description>
+                    <defaultValue>${algorithmName}</defaultValue>
+                </hudson.model.StringParameterDefinition>
+                <hudson.model.StringParameterDefinition>
+                    <name>ALGORITHM_VERSION</name>
+                    <description>算法版本</description>
+                    <defaultValue>${algorithmVersion}</defaultValue>
+                </hudson.model.StringParameterDefinition>
+
+                <!-- 与构建流水线一致的Docker参数 -->
+                <hudson.model.StringParameterDefinition>
+                    <name>DOCKER_IMAGE_NAME</name>
+                    <description>Docker 镜像名称</description>
+                    <defaultValue>${dockerImageName}</defaultValue>
+                </hudson.model.StringParameterDefinition>
+                <hudson.model.StringParameterDefinition>
+                    <name>DOCKER_IMAGE_TAGS</name>
+                    <description>Docker 镜像标签</description>
+                    <defaultValue>${dockerImageTags}</defaultValue>
+                </hudson.model.StringParameterDefinition>
+                <hudson.model.StringParameterDefinition>
+                    <name>HARBOR_URL</name>
+                    <description>Harbor 仓库地址</description>
+                    <defaultValue>${harborUrl}</defaultValue>
+                </hudson.model.StringParameterDefinition>
+                <hudson.model.StringParameterDefinition>
+                    <name>HARBOR_CREDENTIALS_ID</name>
+                    <description>Harbor 凭证 ID</description>
+                    <defaultValue>${harborCredentialsId}</defaultValue>
+                </hudson.model.StringParameterDefinition>
+
+                <!-- 添加调度相关参数 -->
+                <hudson.model.StringParameterDefinition>
+                    <name>SCHEDULE_ENABLED</name>
+                    <description>是否启用定时调度 (true/false)</description>
+                    <defaultValue>false</defaultValue>
+                </hudson.model.StringParameterDefinition>
+                <hudson.model.StringParameterDefinition>
+                    <name>CRON_EXPRESSION</name>
+                    <description>定时调度表达式 (Cron 格式)</description>
+                    <defaultValue>H 2 * * *</defaultValue>
+                </hudson.model.StringParameterDefinition>
+            </parameterDefinitions>
+        </hudson.model.ParametersDefinitionProperty>
+    </properties>
+
+    <!-- 添加定时触发器配置 -->
+    <triggers>
+        <hudson.triggers.TimerTrigger>
+            <spec>${CRON_EXPRESSION}</spec>
+        </hudson.triggers.TimerTrigger>
+    </triggers>
+
+    <definition class="org.jenkinsci.plugins.workflow.cps.CpsFlowDefinition" plugin="workflow-cps@2.90">
+        <script><![CDATA[
+pipeline {
+    agent any
+    environment {
+        // 定义容器内工作目录
+        CONTAINER_WORKSPACE = "/workspace"
+    }
+
+    // 添加条件判断，支持手动触发和定时触发
+    stages {
+        stage('检查调度状态') {
+            steps {
+                script {
+                    // 检查是否是定时触发 - 使用安全的方法
+                    def isTimerTriggered = false
+                    def buildCauses = currentBuild.getBuildCauses()
+
+                    // 检查是否有定时触发
+                    for (cause in buildCauses) {
+                        if (cause.shortDescription && cause.shortDescription.contains('timer') ||
+                            cause.toString().contains('TimerTrigger')) {
+                            isTimerTriggered = true
+                            break
+                        }
+                    }
+
+                    // 如果是定时触发但调度未启用，则跳过执行
+                    if (isTimerTriggered && "${SCHEDULE_ENABLED}".toLowerCase() != 'true') {
+                        echo "定时调度未启用，跳过本次执行"
+                        currentBuild.result = 'ABORTED'
+                        error('定时调度未启用')
+                    }
+
+                    if (isTimerTriggered) {
+                        echo "本次执行由定时调度触发，时间: ${new Date()}"
+                    } else {
+                        echo "本次执行由手动触发，时间: ${new Date()}"
+                    }
+
+                    // 记录调度信息到构建描述
+                    currentBuild.description = "触发类型: ${isTimerTriggered ? '定时调度' : '手动触发'}, 环境: ${ENVIRONMENT}, 数据集: ${DATASET_FOLDER}"
+                }
+            }
+        }
+
+        stage('拉取训练数据') {
+            when {
+                expression { currentBuild.result != 'ABORTED' }
+            }
+            steps {
+                script {
+                    // 创建数据集目录
+                    sh "mkdir -p /opt/mlops/datasets/${DATASET_PATH}"
+
+                    // 从 HDFS 获取数据
+                    sh "hdfs dfs -get /datasets/${DATASET_FOLDER} /opt/mlops/datasets/${DATASET_PATH}"
+                }
+            }
+        }
+
+        stage('构建训练任务') {
+            when {
+                expression { currentBuild.result != 'ABORTED' }
+            }
+            steps {
+                git(
+                    url: "${GIT_REPO_URL}",
+                    credentialsId: "${CREDENTIALS_ID}",
+                    branch: "${GIT_BRANCH}",
+                    changelog: true,
+                    poll: false
+                )
+            }
+        }
+
+        stage('构建训练环境') {
+            when {
+                expression { currentBuild.result != 'ABORTED' }
+            }
+            steps {
+                script {
+                    // 1. 登录Harbor仓库
+                    withCredentials([usernamePassword(
+                        credentialsId: "${HARBOR_CREDENTIALS_ID}",
+                        usernameVariable: 'HARBOR_USER',
+                        passwordVariable: 'HARBOR_PASSWORD'
+                    )]) {
+                        sh """
+                        sudo docker login -u $HARBOR_USER -p $HARBOR_PASSWORD ${HARBOR_URL}
+                        """
+                    }
+                    def cleanHarborUrl = "${HARBOR_URL}".replaceFirst(/^https?:\/\//, '')  // 移除协议头
+
+                    // 构建镜像标签列表
+                    def tags = "${DOCKER_IMAGE_TAGS}".split(',').collect { tag ->
+                        "${cleanHarborUrl}/xnet-mlops-smp-python/${DOCKER_IMAGE_NAME}:${tag.trim()}"
+                    }
+
+                    // 拉取所有标签的镜像
+                    tags.each { fullTag ->
+                         sh "sudo docker pull ${fullTag}"
+                    }
+                }
+            }
+        }
+
+        stage('模型训练') {
+            when {
+                expression { currentBuild.result != 'ABORTED' }
+            }
+            steps {
+                script {
+                    def cleanHarborUrl = "${HARBOR_URL}".replaceFirst(/^https?:\/\//, '')
+                    def tags = "${DOCKER_IMAGE_TAGS}".split(',').collect { tag ->
+                        "${cleanHarborUrl}/xnet-mlops-smp-python/${DOCKER_IMAGE_NAME}:${tag.trim()}"
+                    }
+
+                    tags.each { fullTag ->
+                        // 在Docker容器内执行训练
+                        sh """
+                        sudo docker run --rm --name ${CONTAINER_NAME} \
+                        -v ${WORKSPACE}:${CONTAINER_WORKSPACE} \
+                        -v /opt/mlops/datasets/${DATASET_PATH}:${CONTAINER_WORKSPACE}/data \
+                        -v ${MODEL_OUTPUT_PATH}:${CONTAINER_WORKSPACE}/model_output \
+                        -w ${CONTAINER_WORKSPACE} \
+                        ${fullTag} \
+                        python ${PYTHON_ENTRY}
+                        """
+                    }
+                }
+            }
+        }
+
+        stage('模型输出') {
+            when {
+                expression { currentBuild.result != 'ABORTED' }
+            }
+            steps {
+                script {
+                    // 确保HDFS目录存在
+                    sh "hdfs dfs -mkdir -p /output/${DATASET_FOLDER}/${MODEL_OUTPUT_PATH}/"
+
+                    // 上传模型到HDFS
+                    sh """
+                    if [ -d "${MODEL_OUTPUT_PATH}" ] && [ -n "\$(ls -A '${MODEL_OUTPUT_PATH}')" ]; then
+                        hdfs dfs -put -f ${MODEL_OUTPUT_PATH}/* /output/${DATASET_FOLDER}/${MODEL_OUTPUT_PATH}/
+                    else
+                       echo "##[警告] 模型输出目录为空或不存在: ${MODEL_OUTPUT_PATH}"
+                    fi
+                """
+                }
+            }
+        }
+
+        stage('调度状态报告') {
+            when {
+                expression { currentBuild.result != 'ABORTED' }
+            }
+            steps {
+                script {
+                    // 使用安全的方法检查触发类型
+                    def isTimerTriggered = false
+                    def buildCauses = currentBuild.getBuildCauses()
+
+                    for (cause in buildCauses) {
+                        if (cause.shortDescription && cause.shortDescription.contains('timer') ||
+                            cause.toString().contains('TimerTrigger')) {
+                            isTimerTriggered = true
+                            break
+                        }
+                    }
+
+                    def triggerType = isTimerTriggered ? "定时调度" : "手动触发"
+                    def nextScheduleInfo = ""
+
+                    if (isTimerTriggered && "${SCHEDULE_ENABLED}".toLowerCase() == 'true') {
+                        nextScheduleInfo = "下次调度时间: 根据cron表达式 [${CRON_EXPRESSION}] 自动调度"
+                    } else if (isTimerTriggered) {
+                        nextScheduleInfo = "定时调度已禁用"
+                    } else {
+                        nextScheduleInfo = "手动触发，无下次调度"
+                    }
+
+                    echo """
+                    ========== 训练任务执行报告 ==========
+                    触发类型: ${triggerType}
+                    执行时间: ${new Date()}
+                    算法名称: ${ALGORITHM_NAME}
+                    算法版本: ${ALGORITHM_VERSION}
+                    数据集: ${DATASET_FOLDER}
+                    数据路径: ${DATASET_PATH}
+                    环境: ${ENVIRONMENT}
+                    分支: ${GIT_BRANCH}
+                    ${nextScheduleInfo}
+                    模型输出路径: ${MODEL_OUTPUT_PATH}
+                    构建编号: ${BUILD_NUMBER}
+                    =====================================
+                    """
+                }
+            }
+        }
+    }
+    post {
+        always {
+            script {
+                // 清理数据集目录
+                echo "正在清理数据集目录..."
+                sh "sudo rm -rf /opt/mlops/datasets/${DATASET_PATH}"
+
+                // 清理Docker镜像
+                def cleanHarborUrl = "${HARBOR_URL}".replaceFirst(/^https?:\/\//, '')
+                def tags = "${DOCKER_IMAGE_TAGS}".split(',').collect { tag ->
+                    "${cleanHarborUrl}/xnet-mlops-smp-python/${DOCKER_IMAGE_NAME}:${tag.trim()}"
+                }
+
+                tags.each { fullTag ->
+                    sh "sudo docker rmi ${fullTag} || true"
+                }
+
+                // 退出Harbor登录
+                sh "sudo docker logout ${HARBOR_URL} || true"
+            }
+        }
+
+        success {
+            echo "训练任务执行成功！"
+        }
+
+        failure {
+            echo "训练任务执行失败！"
+        }
+
+        aborted {
+            echo "训练任务被中止（定时调度未启用）"
+        }
+    }
+}
+]]></script>
+        <sandbox>true</sandbox>
+    </definition>
+</flow-definition>

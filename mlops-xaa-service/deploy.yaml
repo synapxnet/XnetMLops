@@ -1,0 +1,47 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mlops-xaa-service
+  labels:
+    app: mlops-xaa-service
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mlops-xaa-service
+  template:
+    metadata:
+      labels:
+        app: mlops-xaa-service
+    spec:
+      containers:
+        - name: mlops-xaa-service
+          image: mlops-xaa-service:latest
+          ports:
+            - containerPort: 8085
+          env:
+            - name: SPRING_DATASOURCE_URL
+              value: jdbc:mysql://mysql:3306/mlops?useSSL=false&serverTimezone=Asia/Shanghai
+            - name: SPRING_DATASOURCE_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: mysql-secret
+                  key: username
+            - name: SPRING_DATASOURCE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: mysql-secret
+                  key: password
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mlops-xaa-service
+spec:
+  selector:
+    app: mlops-xaa-service
+  ports:
+    - protocol: TCP
+      port: 8085
+      targetPort: 8085
+  type: ClusterIP

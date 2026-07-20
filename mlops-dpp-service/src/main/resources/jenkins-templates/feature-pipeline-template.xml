@@ -1,0 +1,472 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<flow-definition plugin="workflow-job@2.40">
+    <actions/>
+    <description>${description}</description>
+    <keepDependencies>false</keepDependencies>
+    <properties>
+        <hudson.model.ParametersDefinitionProperty>
+            <parameterDefinitions>
+                <!-- 任务基础信息 -->
+                <hudson.model.StringParameterDefinition>
+                    <name>TASK_NAME</name>
+                    <description>特征工程任务名称</description>
+                    <defaultValue>${taskName}</defaultValue>
+                </hudson.model.StringParameterDefinition>
+                <hudson.model.StringParameterDefinition>
+                    <name>TASK_UID</name>
+                    <description>特征工程任务UID</description>
+                    <defaultValue>${taskUid}</defaultValue>
+                </hudson.model.StringParameterDefinition>
+
+                <!-- 数据源配置 -->
+                <hudson.model.StringParameterDefinition>
+                    <name>DATASOURCE_NAME</name>
+                    <description>数据源名称</description>
+                    <defaultValue>${datasourceName}</defaultValue>
+                </hudson.model.StringParameterDefinition>
+                <hudson.model.StringParameterDefinition>
+                    <name>DATABASE</name>
+                    <description>数据库名称</description>
+                    <defaultValue>${database}</defaultValue>
+                </hudson.model.StringParameterDefinition>
+                <hudson.model.StringParameterDefinition>
+                    <name>TABLE_NAME</name>
+                    <description>数据表名称</description>
+                    <defaultValue>${tableName}</defaultValue>
+                </hudson.model.StringParameterDefinition>
+                <hudson.model.StringParameterDefinition>
+                    <name>SELECTED_COLUMNS</name>
+                    <description>选中的字段(JSON)</description>
+                    <defaultValue>${selectedColumns}</defaultValue>
+                </hudson.model.StringParameterDefinition>
+
+                <!-- 特征工程配置 -->
+                <hudson.model.StringParameterDefinition>
+                    <name>OPERATOR_CODE</name>
+                    <description>特征算子代码</description>
+                    <defaultValue>${operatorCode}</defaultValue>
+                </hudson.model.StringParameterDefinition>
+                <hudson.model.StringParameterDefinition>
+                    <name>OPERATOR_NAME</name>
+                    <description>特征算子名称</description>
+                    <defaultValue>${operatorName}</defaultValue>
+                </hudson.model.StringParameterDefinition>
+                <hudson.model.StringParameterDefinition>
+                    <name>OUTPUT_FORMAT</name>
+                    <description>输出文件格式</description>
+                    <defaultValue>${outputFormat}</defaultValue>
+                </hudson.model.StringParameterDefinition>
+                <hudson.model.StringParameterDefinition>
+                    <name>FEATURE_CONFIG</name>
+                    <description>字段特征配置(JSON)</description>
+                    <defaultValue>${featureConfig}</defaultValue>
+                </hudson.model.StringParameterDefinition>
+                <hudson.model.StringParameterDefinition>
+                    <name>OPERATOR_PARAMS</name>
+                    <description>算子参数配置(JSON)</description>
+                    <defaultValue>${operatorParams}</defaultValue>
+                </hudson.model.StringParameterDefinition>
+
+                <!-- 输出配置 -->
+                <hudson.model.StringParameterDefinition>
+                    <name>PUSH_TO_DATASET</name>
+                    <description>是否推送至数据集</description>
+                    <defaultValue>${pushToDataset}</defaultValue>
+                </hudson.model.StringParameterDefinition>
+                <hudson.model.StringParameterDefinition>
+                    <name>TARGET_DATASET_NAME</name>
+                    <description>目标数据集名称</description>
+                    <defaultValue>${targetDatasetName}</defaultValue>
+                </hudson.model.StringParameterDefinition>
+                <hudson.model.StringParameterDefinition>
+                    <name>OUTPUT_PATH</name>
+                    <description>输出路径</description>
+                    <defaultValue>${outputPath}</defaultValue>
+                </hudson.model.StringParameterDefinition>
+                <hudson.model.StringParameterDefinition>
+                    <name>ENCRYPTION</name>
+                    <description>是否加密</description>
+                    <defaultValue>${encryption}</defaultValue>
+                </hudson.model.StringParameterDefinition>
+
+                <!-- 存储配置 -->
+                <hudson.model.StringParameterDefinition>
+                    <name>ZONE</name>
+                    <description>数据区域</description>
+                    <defaultValue>${zone}</defaultValue>
+                </hudson.model.StringParameterDefinition>
+                <hudson.model.StringParameterDefinition>
+                    <name>BUCKET_UID</name>
+                    <description>存储桶UID</description>
+                    <defaultValue>${bucketUid}</defaultValue>
+                </hudson.model.StringParameterDefinition>
+                <hudson.model.StringParameterDefinition>
+                    <name>BUCKET_NAME</name>
+                    <description>存储桶名称</description>
+                    <defaultValue>${bucketName}</defaultValue>
+                </hudson.model.StringParameterDefinition>
+
+                <!-- Docker镜像配置 -->
+                <hudson.model.StringParameterDefinition>
+                    <name>DOCKER_IMAGE_NAME</name>
+                    <description>Docker镜像名称</description>
+                    <defaultValue>${dockerImageName}</defaultValue>
+                </hudson.model.StringParameterDefinition>
+                <hudson.model.StringParameterDefinition>
+                    <name>DOCKER_IMAGE_TAG</name>
+                    <description>Docker镜像标签</description>
+                    <defaultValue>${dockerImageTag}</defaultValue>
+                </hudson.model.StringParameterDefinition>
+                <hudson.model.StringParameterDefinition>
+                    <name>HARBOR_URL</name>
+                    <description>Harbor仓库地址</description>
+                    <defaultValue>${harborUrl}</defaultValue>
+                </hudson.model.StringParameterDefinition>
+                <hudson.model.StringParameterDefinition>
+                    <name>HARBOR_CREDENTIALS_ID</name>
+                    <description>Harbor凭证ID</description>
+                    <defaultValue>${harborCredentialsId}</defaultValue>
+                </hudson.model.StringParameterDefinition>
+
+                <!-- 调度配置 -->
+                <hudson.model.StringParameterDefinition>
+                    <name>SCHEDULE_ENABLED</name>
+                    <description>是否启用定时调度</description>
+                    <defaultValue>false</defaultValue>
+                </hudson.model.StringParameterDefinition>
+                <hudson.model.StringParameterDefinition>
+                    <name>CRON_EXPRESSION</name>
+                    <description>定时调度表达式</description>
+                    <defaultValue>H 2 * * *</defaultValue>
+                </hudson.model.StringParameterDefinition>
+            </parameterDefinitions>
+        </hudson.model.ParametersDefinitionProperty>
+    </properties>
+
+    <!-- 定时触发器配置 -->
+    <triggers>
+        <hudson.triggers.TimerTrigger>
+            <spec>${CRON_EXPRESSION}</spec>
+        </hudson.triggers.TimerTrigger>
+    </triggers>
+
+    <definition class="org.jenkinsci.plugins.workflow.cps.CpsFlowDefinition" plugin="workflow-cps@2.90">
+        <script><![CDATA[
+pipeline {
+    agent any
+    environment {
+        CONTAINER_WORKSPACE = "/workspace"
+        FEATURE_OUTPUT_DIR = "/opt/mlops/feature-output"
+        DATA_TEMP_DIR = "/opt/mlops/feature-data"
+    }
+
+    stages {
+        stage('检查调度状态') {
+            steps {
+                script {
+                    def isTimerTriggered = false
+                    def buildCauses = currentBuild.getBuildCauses()
+
+                    for (cause in buildCauses) {
+                        if (cause.shortDescription && cause.shortDescription.contains('timer') ||
+                            cause.toString().contains('TimerTrigger')) {
+                            isTimerTriggered = true
+                            break
+                        }
+                    }
+
+                    if (isTimerTriggered && "${SCHEDULE_ENABLED}".toLowerCase() != 'true') {
+                        echo "定时调度未启用，跳过本次执行"
+                        currentBuild.result = 'ABORTED'
+                        error('定时调度未启用')
+                    }
+
+                    if (isTimerTriggered) {
+                        echo "本次执行由定时调度触发，时间: ${new Date()}"
+                    } else {
+                        echo "本次执行由手动触发，时间: ${new Date()}"
+                    }
+
+                    currentBuild.description = "触发类型: ${isTimerTriggered ? '定时调度' : '手动触发'}, 任务: ${TASK_NAME}, 算子: ${OPERATOR_NAME}"
+                }
+            }
+        }
+
+        stage('拉取数据') {
+            when {
+                expression { currentBuild.result != 'ABORTED' }
+            }
+            steps {
+                script {
+                    echo "========== 开始拉取数据 =========="
+                    echo "数据源: ${DATASOURCE_NAME}"
+                    echo "数据库: ${DATABASE}"
+                    echo "数据表: ${TABLE_NAME}"
+                    echo "选中字段: ${SELECTED_COLUMNS}"
+
+                    // 创建临时数据目录
+                    sh "mkdir -p ${DATA_TEMP_DIR}/${TASK_UID}"
+
+                    // 从数据库拉取数据 (这里使用示例SQL，实际需要根据数据源类型调整)
+                    // TODO: 根据实际数据源配置执行数据拉取
+                    echo "正在从数据源 ${DATASOURCE_NAME} 拉取数据..."
+
+                    // 模拟数据拉取成功
+                    sh """
+                    echo "数据拉取完成"
+                    echo "数据已保存到: ${DATA_TEMP_DIR}/${TASK_UID}"
+                    """
+                }
+            }
+        }
+
+        stage('构建特征任务') {
+            when {
+                expression { currentBuild.result != 'ABORTED' }
+            }
+            steps {
+                script {
+                    echo "========== 构建特征工程任务 =========="
+                    echo "算子代码: ${OPERATOR_CODE}"
+                    echo "算子名称: ${OPERATOR_NAME}"
+                    echo "输出格式: ${OUTPUT_FORMAT}"
+                    echo "特征配置: ${FEATURE_CONFIG}"
+                    echo "算子参数: ${OPERATOR_PARAMS}"
+
+                    // 创建输出目录
+                    sh "mkdir -p ${FEATURE_OUTPUT_DIR}/${TASK_UID}"
+
+                    // 生成特征处理脚本
+                    writeFile file: "${WORKSPACE}/feature_process.py", text: '''
+import json
+import sys
+import os
+
+# 读取配置
+feature_config = json.loads(os.environ.get('FEATURE_CONFIG', '{}'))
+operator_params = json.loads(os.environ.get('OPERATOR_PARAMS', '{}'))
+operator_code = os.environ.get('OPERATOR_CODE', '')
+output_format = os.environ.get('OUTPUT_FORMAT', 'csv')
+
+print(f"开始特征处理...")
+print(f"算子: {operator_code}")
+print(f"输出格式: {output_format}")
+print(f"特征配置: {feature_config}")
+
+# TODO: 实际的特征处理逻辑
+# 根据 operator_code 执行不同的转换操作
+# - csv_to_parquet: CSV转Parquet
+# - parquet_to_csv: Parquet转CSV
+# - normalization: 数据标准化
+# - one_hot_encoding: 独热编码
+# - data_cleaning: 数据清洗
+# 等等...
+
+print("特征处理完成!")
+'''
+                }
+            }
+        }
+
+        stage('构建环境') {
+            when {
+                expression { currentBuild.result != 'ABORTED' }
+            }
+            steps {
+                script {
+                    echo "========== 构建特征处理环境 =========="
+
+                    if ("${DOCKER_IMAGE_NAME}" != "" && "${HARBOR_URL}" != "") {
+                        // 登录Harbor仓库
+                        withCredentials([usernamePassword(
+                            credentialsId: "${HARBOR_CREDENTIALS_ID}",
+                            usernameVariable: 'HARBOR_USER',
+                            passwordVariable: 'HARBOR_PASSWORD'
+                        )]) {
+                            sh """
+                            sudo docker login -u $HARBOR_USER -p $HARBOR_PASSWORD ${HARBOR_URL}
+                            """
+                        }
+
+                        def cleanHarborUrl = "${HARBOR_URL}".replaceFirst(/^https?:\/\//, '')
+                        def fullImageTag = "${cleanHarborUrl}/xnet-mlops-dpp-python/${DOCKER_IMAGE_NAME}:${DOCKER_IMAGE_TAG}"
+
+                        echo "拉取镜像: ${fullImageTag}"
+                        sh "sudo docker pull ${fullImageTag}"
+
+                        env.FULL_IMAGE_TAG = fullImageTag
+                    } else {
+                        echo "未配置镜像，使用默认Python环境"
+                        env.FULL_IMAGE_TAG = ""
+                    }
+                }
+            }
+        }
+
+        stage('特征处理') {
+            when {
+                expression { currentBuild.result != 'ABORTED' }
+            }
+            steps {
+                script {
+                    echo "========== 执行特征处理 =========="
+
+                    if (env.FULL_IMAGE_TAG && env.FULL_IMAGE_TAG != "") {
+                        // 使用Docker容器执行
+                        sh """
+                        sudo docker run --rm \
+                        -v ${DATA_TEMP_DIR}/${TASK_UID}:${CONTAINER_WORKSPACE}/data \
+                        -v ${FEATURE_OUTPUT_DIR}/${TASK_UID}:${CONTAINER_WORKSPACE}/output \
+                        -v ${WORKSPACE}:${CONTAINER_WORKSPACE}/scripts \
+                        -e FEATURE_CONFIG='${FEATURE_CONFIG}' \
+                        -e OPERATOR_PARAMS='${OPERATOR_PARAMS}' \
+                        -e OPERATOR_CODE='${OPERATOR_CODE}' \
+                        -e OUTPUT_FORMAT='${OUTPUT_FORMAT}' \
+                        -w ${CONTAINER_WORKSPACE} \
+                        ${env.FULL_IMAGE_TAG} \
+                        python scripts/feature_process.py
+                        """
+                    } else {
+                        // 使用本地Python环境
+                        withEnv([
+                            "FEATURE_CONFIG=${FEATURE_CONFIG}",
+                            "OPERATOR_PARAMS=${OPERATOR_PARAMS}",
+                            "OPERATOR_CODE=${OPERATOR_CODE}",
+                            "OUTPUT_FORMAT=${OUTPUT_FORMAT}"
+                        ]) {
+                            sh "python3 ${WORKSPACE}/feature_process.py"
+                        }
+                    }
+
+                    echo "特征处理完成"
+                }
+            }
+        }
+
+        stage('数据推送') {
+            when {
+                expression { currentBuild.result != 'ABORTED' }
+            }
+            steps {
+                script {
+                    echo "========== 数据推送 =========="
+
+                    if ("${PUSH_TO_DATASET}" == "true") {
+                        echo "推送到数据集: ${TARGET_DATASET_NAME}"
+
+                        // 确保HDFS目标目录存在
+                        sh "hdfs dfs -mkdir -p /datasets/${TARGET_DATASET_NAME}/"
+
+                        // 上传处理后的数据到数据集
+                        sh """
+                        if [ -d "${FEATURE_OUTPUT_DIR}/${TASK_UID}" ] && [ -n "\$(ls -A '${FEATURE_OUTPUT_DIR}/${TASK_UID}')" ]; then
+                            hdfs dfs -put -f ${FEATURE_OUTPUT_DIR}/${TASK_UID}/* /datasets/${TARGET_DATASET_NAME}/
+                            echo "数据已推送到数据集: ${TARGET_DATASET_NAME}"
+                        else
+                            echo "##[警告] 输出目录为空: ${FEATURE_OUTPUT_DIR}/${TASK_UID}"
+                        fi
+                        """
+                    } else {
+                        echo "推送到自定义路径: ${OUTPUT_PATH}"
+
+                        // 确保HDFS目标目录存在
+                        sh "hdfs dfs -mkdir -p ${OUTPUT_PATH}/"
+
+                        // 上传处理后的数据
+                        sh """
+                        if [ -d "${FEATURE_OUTPUT_DIR}/${TASK_UID}" ] && [ -n "\$(ls -A '${FEATURE_OUTPUT_DIR}/${TASK_UID}')" ]; then
+                            hdfs dfs -put -f ${FEATURE_OUTPUT_DIR}/${TASK_UID}/* ${OUTPUT_PATH}/
+                            echo "数据已推送到路径: ${OUTPUT_PATH}"
+                        else
+                            echo "##[警告] 输出目录为空: ${FEATURE_OUTPUT_DIR}/${TASK_UID}"
+                        fi
+                        """
+                    }
+
+                    // 如果启用加密
+                    if ("${ENCRYPTION}" == "true") {
+                        echo "数据加密已启用"
+                        // TODO: 实现数据加密逻辑
+                    }
+                }
+            }
+        }
+
+        stage('数据清理') {
+            when {
+                expression { currentBuild.result != 'ABORTED' }
+            }
+            steps {
+                script {
+                    echo "========== 清理临时数据 =========="
+
+                    // 清理临时数据目录
+                    sh "sudo rm -rf ${DATA_TEMP_DIR}/${TASK_UID}"
+                    sh "sudo rm -rf ${FEATURE_OUTPUT_DIR}/${TASK_UID}"
+
+                    // 清理Docker镜像
+                    if (env.FULL_IMAGE_TAG && env.FULL_IMAGE_TAG != "") {
+                        sh "sudo docker rmi ${env.FULL_IMAGE_TAG} || true"
+                        sh "sudo docker logout ${HARBOR_URL} || true"
+                    }
+
+                    echo "清理完成"
+                }
+            }
+        }
+    }
+
+    post {
+        always {
+            script {
+                def isTimerTriggered = false
+                def buildCauses = currentBuild.getBuildCauses()
+
+                for (cause in buildCauses) {
+                    if (cause.shortDescription && cause.shortDescription.contains('timer') ||
+                        cause.toString().contains('TimerTrigger')) {
+                        isTimerTriggered = true
+                        break
+                    }
+                }
+
+                def triggerType = isTimerTriggered ? "定时调度" : "手动触发"
+
+                echo """
+                ========== 特征工程任务执行报告 ==========
+                触发类型: ${triggerType}
+                执行时间: ${new Date()}
+                任务名称: ${TASK_NAME}
+                任务UID: ${TASK_UID}
+                数据源: ${DATASOURCE_NAME}
+                数据库: ${DATABASE}
+                数据表: ${TABLE_NAME}
+                算子: ${OPERATOR_NAME} (${OPERATOR_CODE})
+                输出格式: ${OUTPUT_FORMAT}
+                推送至数据集: ${PUSH_TO_DATASET}
+                目标数据集: ${TARGET_DATASET_NAME}
+                输出路径: ${OUTPUT_PATH}
+                是否加密: ${ENCRYPTION}
+                构建编号: ${BUILD_NUMBER}
+                ==========================================
+                """
+            }
+        }
+
+        success {
+            echo "特征工程任务执行成功！"
+        }
+
+        failure {
+            echo "特征工程任务执行失败！"
+        }
+
+        aborted {
+            echo "特征工程任务被中止"
+        }
+    }
+}
+]]></script>
+        <sandbox>true</sandbox>
+    </definition>
+</flow-definition>
