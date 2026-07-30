@@ -15,7 +15,7 @@
 
 </div>
 
-![XnetMLops 概要](./docs/images/xnetmlops-overview.png)
+![XnetMLops MLOps 分析センター](./docs/images/xnetmlops-analytics-2026.png)
 
 ## 画面プレビュー
 

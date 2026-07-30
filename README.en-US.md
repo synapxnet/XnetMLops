@@ -15,7 +15,7 @@
 
 </div>
 
-![XnetMLops overview](./docs/images/xnetmlops-overview.png)
+![XnetMLops analytics center](./docs/images/xnetmlops-analytics-2026.png)
 
 ## Product Tour
 
