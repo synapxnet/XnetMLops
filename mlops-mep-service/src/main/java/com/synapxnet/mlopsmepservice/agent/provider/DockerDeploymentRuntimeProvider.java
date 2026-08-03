@@ -16,6 +16,7 @@ import com.synapxnet.goai.contract.AgentContractException;
 import com.synapxnet.mlopsmepservice.agent.DeploymentRevision;
 import com.synapxnet.mlopsmepservice.entity.ModelDeployment;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.TaskScheduler;
 import org.springframework.stereotype.Component;
 
@@ -35,18 +36,25 @@ public class DockerDeploymentRuntimeProvider implements DeploymentRuntimeProvide
 
     private final ObjectMapper objectMapper;
     private final TaskScheduler readinessScheduler;
+    private final String runtimeNetwork;
 
     /**
      * 创建 Docker Runtime Provider。
      *
      * @param objectMapper 部署规格 JSON 解析器
      * @param readinessScheduler Spring 管理的 readiness 轮询调度器
+     * @param runtimeNetwork 仅供 MEP、Docker Proxy 和模型容器通信的隔离网络
      */
     public DockerDeploymentRuntimeProvider(
             ObjectMapper objectMapper,
-            @Qualifier("deploymentReadinessScheduler") TaskScheduler readinessScheduler) {
+            @Qualifier("deploymentReadinessScheduler") TaskScheduler readinessScheduler,
+            @Value("${openxnet.docker.runtime-network:synapxnet_runtime-control}") String runtimeNetwork) {
         this.objectMapper = objectMapper;
         this.readinessScheduler = readinessScheduler;
+        if (runtimeNetwork == null || !runtimeNetwork.matches("[A-Za-z0-9][A-Za-z0-9_.-]{0,127}")) {
+            throw new IllegalArgumentException("Docker Runtime 隔离网络名称无效");
+        }
+        this.runtimeNetwork = runtimeNetwork;
     }
 
     /** 仅支持明确标记为本机 Docker 的部署节点。 */
@@ -105,8 +113,11 @@ public class DockerDeploymentRuntimeProvider implements DeploymentRuntimeProvide
         try (DockerClient client = client()) {
             removeExisting(client, spec.containerName());
             ExposedPort exposedPort = ExposedPort.tcp(spec.containerPort());
-            PortBinding portBinding = new PortBinding(Ports.Binding.bindPort(spec.hostPort()), exposedPort);
-            HostConfig hostConfig = HostConfig.newHostConfig().withPortBindings(portBinding);
+            PortBinding portBinding = new PortBinding(
+                    Ports.Binding.bindIpAndPort("127.0.0.1", spec.hostPort()), exposedPort);
+            HostConfig hostConfig = HostConfig.newHostConfig()
+                    .withPortBindings(portBinding)
+                    .withNetworkMode(runtimeNetwork);
             String containerId = client.createContainerCmd(revision.getImageName())
                     .withName(spec.containerName())
                     .withExposedPorts(exposedPort)

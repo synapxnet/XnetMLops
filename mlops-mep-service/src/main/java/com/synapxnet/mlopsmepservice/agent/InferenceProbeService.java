@@ -74,10 +74,59 @@ public class InferenceProbeService {
             AgentContract.RequestContext context) {
         ProbeLimits limits = validate(arguments);
         ModelDeployment deployment = deploymentEvidenceService.requireDeployment(arguments.deploymentUid());
+        Long activeRevision = deployment.getActiveRevision();
         ModelContract contract = agentMapper.findContract(deployment.getModelUid(), deployment.getModelVersion());
-        if (contract == null || deployment.getActiveRevision() == null) {
+        if (contract == null || activeRevision == null) {
             throw new AgentContractException(412, "PRECONDITION_FAILED", "部署缺少活动修订或模型输入契约");
         }
+        return executeProbe(arguments, context, limits, deployment, contract, activeRevision);
+    }
+
+    /**
+     * 按尚未提交为活动版本的目标修订执行真实探针。
+     *
+     * @param arguments 探针参数
+     * @param context 已验证 Agent 上下文
+     * @param revision 回滚目标修订
+     * @return 使用目标修订契约和修订号生成的聚合结果
+     */
+    public MepAgentDtos.InferenceProbeResult probeAgainstRevision(
+            MepAgentDtos.InferenceProbeArguments arguments,
+            AgentContract.RequestContext context,
+            DeploymentRevision revision) {
+        ProbeLimits limits = validate(arguments);
+        ModelDeployment deployment = deploymentEvidenceService.requireDeployment(arguments.deploymentUid());
+        if (revision == null || revision.getRevisionNumber() == null
+                || revision.getDeploymentUid() == null
+                || !deployment.getUid().equals(revision.getDeploymentUid())
+                || revision.getModelContractUid() == null || revision.getModelContractUid().isBlank()) {
+            throw new AgentContractException(412, "PRECONDITION_FAILED", "目标修订缺少有效模型输入契约");
+        }
+        ModelContract contract = agentMapper.findContractByUid(revision.getModelContractUid());
+        if (contract == null) {
+            throw new AgentContractException(412, "PRECONDITION_FAILED", "目标修订模型输入契约不存在");
+        }
+        return executeProbe(arguments, context, limits, deployment, contract, revision.getRevisionNumber());
+    }
+
+    /**
+     * 使用指定契约和修订号执行探针、计算摘要并持久化结果。
+     *
+     * @param arguments 探针参数
+     * @param context 已验证 Agent 上下文
+     * @param limits 已校验探针预算
+     * @param deployment 当前部署和真实端点
+     * @param contract 本次验证采用的模型契约
+     * @param revisionNumber 本次验证采用的修订号
+     * @return 持久化后的聚合探针结果
+     */
+    private MepAgentDtos.InferenceProbeResult executeProbe(
+            MepAgentDtos.InferenceProbeArguments arguments,
+            AgentContract.RequestContext context,
+            ProbeLimits limits,
+            ModelDeployment deployment,
+            ModelContract contract,
+            Long revisionNumber) {
         ProbeDataset dataset = loadDataset(arguments.testDatasetRef(), context.workspaceId());
         List<ProbeSample> samples = dataset.samples().stream().limit(limits.sampleLimit()).toList();
         Instant startedAt = Instant.now();
@@ -85,12 +134,12 @@ public class InferenceProbeService {
                 ? invokeEndpoint(deployment, samples, limits.timeoutMs())
                 : contractMismatch(samples);
         Instant completedAt = Instant.now();
-        String digest = digest(deployment, dataset, aggregation, startedAt, completedAt);
+        String digest = digest(deployment, revisionNumber, dataset, aggregation, startedAt, completedAt);
         String probeUid = "probe_" + UUID.randomUUID().toString().replace("-", "").substring(0, 26);
         MepAgentDtos.ContractStatus status = dataset.inputDimension() == contract.getInputDimension()
                 ? MepAgentDtos.ContractStatus.MATCHED : MepAgentDtos.ContractStatus.MISMATCHED;
         MepAgentDtos.InferenceProbeResult result = new MepAgentDtos.InferenceProbeResult(
-                probeUid, deployment.getUid(), deployment.getActiveRevision(), samples.size(),
+                probeUid, deployment.getUid(), revisionNumber, samples.size(),
                 aggregation.successCount(), aggregation.errorCount(), rate(aggregation.errorCount(), samples.size()),
                 percentile(aggregation.latenciesMs(), 0.50), percentile(aggregation.latenciesMs(), 0.95),
                 dataset.inputDimension(), contract.getInputDimension(), status, aggregation.failures(),
@@ -236,6 +285,7 @@ public class InferenceProbeService {
      * 计算不含原始样本的探针结果摘要。
      *
      * @param deployment 部署
+     * @param revisionNumber 本次验证采用的修订号
      * @param dataset 数据集元信息
      * @param aggregation 聚合结果
      * @param startedAt 开始时间
@@ -244,6 +294,7 @@ public class InferenceProbeService {
      */
     private String digest(
             ModelDeployment deployment,
+            Long revisionNumber,
             ProbeDataset dataset,
             ProbeAggregation aggregation,
             Instant startedAt,
@@ -251,7 +302,7 @@ public class InferenceProbeService {
         try {
             String value = objectMapper.writeValueAsString(Map.of(
                     "deploymentUid", deployment.getUid(),
-                    "revision", deployment.getActiveRevision(),
+                    "revision", revisionNumber,
                     "datasetRef", dataset.datasetRef(),
                     "inputDimension", dataset.inputDimension(),
                     "successCount", aggregation.successCount(),

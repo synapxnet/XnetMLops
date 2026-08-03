@@ -178,9 +178,9 @@ public class DeploymentActionService {
                     action.getWorkspaceId(), action.getIncidentId(), action.getTraceId(),
                     "mlops.inference.probe", "probe-" + action.getIdempotencyKey(), action.getCreatedBy(),
                     action.getRequestId() + "-verify");
-            MepAgentDtos.InferenceProbeResult probe = probeService.probe(
+            MepAgentDtos.InferenceProbeResult probe = probeService.probeAgainstRevision(
                     new MepAgentDtos.InferenceProbeArguments(
-                            action.getDeploymentUid(), VERIFY_DATASET, 12, 60_000), probeContext);
+                            action.getDeploymentUid(), VERIFY_DATASET, 12, 60_000), probeContext, target);
             requireProbeThreshold(probe, policy);
             transition(action, "RUNNING", "FINALIZING", null, null, false);
             int updated = agentMapper.activateRevision(
