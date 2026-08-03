@@ -7,13 +7,14 @@
     <!-- 项目基础信息 -->
     <groupId>com.synapxnet</groupId>
     <artifactId>mlops-parent</artifactId>
-    <version>1.0.0-SNAPSHOT</version>
+    <version>1.0.0</version>
     <packaging>pom</packaging> <!-- 关键：多模块项目必须为pom类型 -->
     <name>MLOps Parent</name>
     <description>Parent POM for MLOps services</description>
 
     <!-- 子模块声明 -->
     <modules>
+        <module>mlops-agent-contract</module>
         <module>mlops-dpp-service</module>
         <module>mlops-mtp-service</module>
         <module>mlops-smp-service</module>

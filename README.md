@@ -55,6 +55,12 @@ XnetMLops 是由 **SynapXnet 团队**开源的全流程 MLOps 平台，面向机
 
 本仓库是平台后端，与 [XnetMLops-web](https://github.com/synapxnet/XnetMLops-web) 前端仓库共同组成企业级、多租户、前后端分离系统。平台以独立微服务承载 DPP、MTP、MEP、SMP 与 XAA 五个核心业务域，可以对接 Hadoop、Jenkins、对象存储、镜像仓库与模型推理节点。
 
+## GOAI Competition 1.0.0
+
+`GOAI-Competition` 分支新增部署证据、真实 Fixture 推理探针和受审批保护的持久化回滚动作。写操作具备职责分离、幂等、乐观锁、进程恢复与独立验证；`dryRun=true` 只返回执行计划，不创建 Action、审计回执，也不修改数据库或 Runtime。
+
+[查看迁移、审批联调、调用样例和验证记录](./docs/goai-handoff/HANDOFF-GOAI-COMPETITION-1.0.0.md) · [配套模型证据页](https://github.com/synapxnet/XnetMLops-web/tree/GOAI-Competition)
+
 ## 项目优势
 
 - **企业多租户**：通过租户、部门、团队、角色和资源边界支撑多角色协作。

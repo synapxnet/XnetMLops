@@ -37,6 +37,12 @@ XnetMLops is an open-source, full-lifecycle MLOps platform maintained by the **S
 
 This backend repository and [XnetMLops-web](https://github.com/synapxnet/XnetMLops-web) form an enterprise-grade, multi-tenant, frontend/backend-separated system. DPP, MTP, MEP, SMP, and XAA are delivered as focused microservices.
 
+## GOAI Competition 1.0.0
+
+The `GOAI-Competition` branch adds deployment evidence, a real fixture-backed inference probe, and approval-protected persistent rollback actions. Writes enforce separation of duties, idempotency, optimistic locking, process recovery, and independent verification. `dryRun=true` returns a plan without creating an Action or audit receipt and without changing the database or runtime.
+
+[Migrations, approval integration, API examples, and verification](./docs/goai-handoff/HANDOFF-GOAI-COMPETITION-1.0.0.md) · [Companion model evidence UI](https://github.com/synapxnet/XnetMLops-web/tree/GOAI-Competition)
+
 ## Highlights
 
 - Enterprise multi-tenancy across tenants, departments, teams, roles, and resources.

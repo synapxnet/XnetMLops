@@ -10,7 +10,7 @@
     </parent>
     <groupId>com.synapxnet</groupId>
     <artifactId>mlops-mep-service</artifactId>
-    <version>1.0.0-SNAPSHOT</version>
+    <version>1.0.0</version>
     <name>mlops-mep-service</name>
     <description>Model Endpoint Platform - 模型部署平台服务</description>
 
@@ -21,6 +21,11 @@
     </properties>
 
     <dependencies>
+        <dependency>
+            <groupId>com.synapxnet</groupId>
+            <artifactId>mlops-agent-contract</artifactId>
+            <version>1.0.0</version>
+        </dependency>
         <!-- Spring Boot Web -->
         <dependency>
             <groupId>org.springframework.boot</groupId>

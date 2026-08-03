@@ -37,6 +37,12 @@ XnetMLops は **SynapXnet チーム**が公開するフルライフサイクル 
 
 本バックエンドと [XnetMLops-web](https://github.com/synapxnet/XnetMLops-web) は、企業向けマルチテナント、フロントエンド・バックエンド分離システムを構成します。DPP、MTP、MEP、SMP、XAA を独立したサービスとして提供します。
 
+## GOAI Competition 1.0.0
+
+`GOAI-Competition` ブランチはデプロイ証拠、Fixture に基づく推論 Probe、承認で保護された永続ロールバック Action を追加します。職務分離、冪等性、楽観ロック、プロセス復旧、独立検証を実装し、`dryRun=true` はデータベースと Runtime を変更しません。
+
+[マイグレーション、承認連携、API 例、検証結果](./docs/goai-handoff/HANDOFF-GOAI-COMPETITION-1.0.0.md) · [対応するモデル証拠 UI](https://github.com/synapxnet/XnetMLops-web/tree/GOAI-Competition)
+
 ## 特長
 
 - テナント、部門、チーム、ロール、リソースを横断するマルチテナント。

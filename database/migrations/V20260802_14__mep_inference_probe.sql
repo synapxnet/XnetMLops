@@ -1,0 +1,25 @@
+-- GOAI 1.0.0: 仅保存聚合指标和摘要的推理探针记录。
+CREATE TABLE IF NOT EXISTS `xnet_mlops_mep_inference_probe` (
+    `id` BIGINT NOT NULL AUTO_INCREMENT,
+    `uid` VARCHAR(64) NOT NULL,
+    `deployment_uid` VARCHAR(64) NOT NULL,
+    `revision_number` BIGINT NOT NULL,
+    `test_dataset_ref` VARCHAR(255) NOT NULL,
+    `sample_count` INT NOT NULL,
+    `success_count` INT NOT NULL,
+    `error_count` INT NOT NULL,
+    `error_rate` DECIMAL(8,6) NOT NULL,
+    `p50_ms` DECIMAL(12,3) NULL,
+    `p95_ms` DECIMAL(12,3) NULL,
+    `input_dimension` INT NOT NULL,
+    `contract_status` VARCHAR(16) NOT NULL,
+    `result_digest` CHAR(64) NOT NULL,
+    `incident_id` VARCHAR(64) NOT NULL,
+    `trace_id` VARCHAR(64) NOT NULL,
+    `started_at` DATETIME(3) NOT NULL,
+    `completed_at` DATETIME(3) NOT NULL,
+    PRIMARY KEY (`id`),
+    UNIQUE KEY `uk_mep_probe_uid` (`uid`),
+    KEY `idx_mep_probe_deployment` (`deployment_uid`, `started_at`),
+    KEY `idx_mep_probe_trace` (`incident_id`, `trace_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='GOAI 推理探针';
