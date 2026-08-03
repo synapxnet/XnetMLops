@@ -23,6 +23,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.same;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -127,6 +128,39 @@ class DeploymentActionServiceTest {
         verify(approvalVerifier, never()).verify(anyString(), any(), anyString(), anyString(), any());
         verify(provider, never()).validateRevision(any(), any());
         verify(executor, never()).execute(any());
+    }
+
+    /** 实际回滚必须使用目标修订 17 的契约执行探针，而不是仍活动的修订 18。 */
+    @Test
+    void executionProbesAgainstTargetRevisionContract() {
+        AtomicReference<DeploymentAction> saved = new AtomicReference<>();
+        ArgumentCaptor<Runnable> queued = ArgumentCaptor.forClass(Runnable.class);
+        DeploymentRevision previous = new DeploymentRevision();
+        previous.setDeploymentUid(deployment.getUid());
+        previous.setRevisionNumber(18L);
+        MepAgentDtos.InferenceProbeResult probe = mock(MepAgentDtos.InferenceProbeResult.class);
+        when(mapper.findActionByIdempotency("ws_goai_demo", "ROLLBACK", "idem_rollback_001"))
+                .thenAnswer(invocation -> saved.get());
+        org.mockito.Mockito.doAnswer(invocation -> {
+            saved.set(invocation.getArgument(0));
+            return 1;
+        }).when(mapper).insertAction(any());
+        when(mapper.findActionByUid(anyString())).thenAnswer(invocation -> saved.get());
+        when(mapper.findRevision(deployment.getUid(), 18L)).thenReturn(previous);
+        when(provider.waitUntilReady(any(), any())).thenReturn(
+                new DeploymentRuntimeProvider.RuntimeInspection(true, true, "healthy", "v17"));
+        when(probeService.probeAgainstRevision(any(), any(), same(revision))).thenReturn(probe);
+        when(probe.contractStatus()).thenReturn(MepAgentDtos.ContractStatus.MATCHED);
+        when(probe.errorRate()).thenReturn(BigDecimal.ZERO);
+        when(probe.p95Ms()).thenReturn(new BigDecimal("100"));
+        when(mapper.activateRevision(anyString(), any(Long.class), same(revision))).thenReturn(1);
+
+        service.submit(request(false), context());
+        verify(executor).execute(queued.capture());
+        queued.getValue().run();
+
+        verify(probeService).probeAgainstRevision(any(), any(), same(revision));
+        verify(provider, never()).restore(any(), any(), anyString());
     }
 
     /** 创建强类型公共回滚请求。 */
