@@ -37,7 +37,7 @@ mlops-xaa-service/src/main/java/com/synapxnet/mlopsxaaservice/
 ├── controller/
 │   ├── AssistantController.java             -- 智能助手控制器 (19个接口)
 │   ├── ExternalResourceController.java      -- 外部资源代理控制器 (6个接口)
-│   ├── SkillController.java                 -- 技能管理控制器 (16个接口)
+│   ├── SkillController.java                 -- 技能管理控制器 (18个接口)
 │   ├── WorkflowController.java             -- 工作流管理控制器 (10个接口)
 │   └── WorkflowExecutionController.java     -- 工作流执行控制器 (5个接口)
 ├── entity/
@@ -460,13 +460,15 @@ XnetMLops-web/apps/web-antd/src/views/XAA/
 | GET | `/api/xaa/executions/{executionId}/nodes` | 获取节点执行详情 | executionId |
 | POST | `/api/xaa/executions/{id}/stop` | 停止执行 | id |
 
-### 5.4 SkillController (`/api/xaa`) — 16 个接口
+### 5.4 SkillController (`/api/xaa`) — 18 个接口
 
 | HTTP方法 | 路径 | 功能 | 参数 |
 |----------|------|------|------|
 | POST | `/api/xaa/skills` | 创建技能 | @RequestBody Skill |
+| POST | `/api/xaa/skills/import/openxnet` | 导入 OpenXnet 企业候选 | Bearer 委托 + Idempotency-Key + Workspace 绑定请求 |
 | GET | `/api/xaa/skills` | 获取技能列表 | status?, type?, category? |
 | GET | `/api/xaa/skills/repository` | 获取仓库技能(已发布) | category? |
+| GET | `/api/xaa/skills/repository/openxnet-candidates` | 获取当前用户的 OpenXnet 企业候选 | MLOps Bearer JWT + category? |
 | GET | `/api/xaa/skills/search` | 搜索技能 | keyword?, category? |
 | GET | `/api/xaa/skills/{id}` | 获取技能详情 | id |
 | PUT | `/api/xaa/skills/{id}` | 更新技能 | id + @RequestBody Skill |
@@ -480,6 +482,8 @@ XnetMLops-web/apps/web-antd/src/views/XAA/
 | GET | `/api/xaa/skills/{id}/installed` | 检查是否已安装 | id + X-Tenant-UID |
 | GET | `/api/xaa/skills/installed` | 获取已安装技能列表 | X-Tenant-UID |
 | GET | `/api/xaa/skill-installations` | 获取安装记录 | X-Tenant-UID |
+
+OpenXnet 导入端点只接收五分钟有效的职责限定委托令牌。令牌、请求体和 `Idempotency-Key` 必须绑定同一 Workspace、Skill ID 与制品摘要；服务端会重新计算 `SKILL.md + NUL + openxnet.skill.json` 的 SHA-256。导入结果始终为 `draft`，不会自动发布、安装或授予执行权限。
 
 ### 5.5 ExternalResourceController (`/api/xaa/resources`) — 6 个接口
 

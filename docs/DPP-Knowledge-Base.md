@@ -644,7 +644,7 @@ hdfs.path=hdfs://127.0.0.1:8020
 hdfs.user=atguigu
 jenkins.url=http://127.0.0.1:8080
 jenkins.username=atguigu
-jenkins.api-token=11b73ae258cd734ce76ac568d0eb292916
+jenkins.api-token=${JENKINS_API_TOKEN}
 spring.servlet.multipart.max-file-size=100GB
 mybatis.configuration.map-underscore-to-camel-case=false
 ```

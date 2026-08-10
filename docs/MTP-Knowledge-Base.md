@@ -975,7 +975,7 @@ app.temp.dir=/data/tmp
 # Jenkins
 jenkins.url=http://127.0.0.1:8080
 jenkins.username=atguigu
-jenkins.api-token=11b73ae258cd734ce76ac568d0eb292916
+jenkins.api-token=${JENKINS_API_TOKEN}
 
 # Redis
 spring.data.redis.host=127.0.0.1

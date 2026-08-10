@@ -136,9 +136,11 @@ services:
       - DB_HOST=${DB_HOST:?DB_HOST is required}
       - DB_PORT=${DB_PORT:-3306}
       - DB_PASSWORD=${DB_PASSWORD:?DB_PASSWORD is required}
+      - JWT_SECRET=${JWT_SECRET:?JWT_SECRET is required}
       - DPP_SERVICE_URL=http://mlops-dpp-service:8182
       - MTP_SERVICE_URL=http://mlops-mtp-service:8183
       - MEP_SERVICE_URL=http://mlops-mep-service:8184
+      - OPENXNET_AGENT_DELEGATION_SECRET=${OPENXNET_AGENT_DELEGATION_SECRET:?OPENXNET_AGENT_DELEGATION_SECRET is required}
     networks:
       - mlops-net
     restart: unless-stopped

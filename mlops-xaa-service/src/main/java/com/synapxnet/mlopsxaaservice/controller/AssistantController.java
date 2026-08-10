@@ -41,7 +41,7 @@ public class AssistantController {
     private final HttpClient httpClient;
     private final ObjectMapper objectMapper;
 
-    @Value("${xaa.services.mep-url:http://127.0.0.1:8184}")
+    @Value("${xaa.services.mep-url}")
     private String mepServiceUrl;
 
     public AssistantController(AssistantService assistantService,

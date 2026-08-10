@@ -22,7 +22,7 @@ class UserControllerService {
 @RestController
 @RequestMapping("/api")
 public class UserController {
-    private static final String DEMO_PHONE = "12345678900";
+    private static final String DEMO_PHONE = "17870171303";
     private static final String DEMO_VERIFICATION_CODE = "000000";
 
     @Resource

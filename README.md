@@ -49,6 +49,38 @@
 | --- | --- |
 | ![XnetMLops 演示登录](./docs/images/xnetmlops-login.png) | ![XnetMLops 关于项目](./docs/images/xnetmlops-about.png) |
 
+## 界面预览
+
+以下界面由配套前端仓库 [XnetMLops-web](https://github.com/synapxnet/XnetMLops-web) 提供，展示数据来自 `demo/showcase_data.sql`。
+
+### DPP 数据处理
+
+| 数据集管理 | RAG 知识库 |
+| --- | --- |
+| ![XnetMLops 数据集管理](./docs/images/xnetmlops-dpp-datasets.png) | ![XnetMLops RAG 知识库](./docs/images/xnetmlops-dpp-knowledge-base.png) |
+
+### MTP 模型训练与 MEP 模型部署
+
+| 训练任务 | 模型部署 |
+| --- | --- |
+| ![XnetMLops 训练任务](./docs/images/xnetmlops-mtp-training.png) | ![XnetMLops 模型部署](./docs/images/xnetmlops-mep-deployments.png) |
+
+### SMP 系统管理与 XAA 智能体
+
+| 工作站资源 | 智能体工作流 |
+| --- | --- |
+| ![XnetMLops 工作站资源](./docs/images/xnetmlops-smp-workstations.png) | ![XnetMLops 智能体工作流](./docs/images/xnetmlops-xaa-workflows.png) |
+
+| 元技能仓库 | 智能助手 |
+| --- | --- |
+| ![XnetMLops 元技能仓库](./docs/images/xnetmlops-xaa-skills.png) | ![XnetMLops 智能助手](./docs/images/xnetmlops-xaa-assistants.png) |
+
+### 演示入口与项目信息
+
+| 演示登录 | 关于项目 |
+| --- | --- |
+| ![XnetMLops 演示登录](./docs/images/xnetmlops-login.png) | ![XnetMLops 关于项目](./docs/images/xnetmlops-about.png) |
+
 ## 项目简介
 
 XnetMLops 是由 **SynapXnet 团队**开源的全流程 MLOps 平台，面向机器学习、生成式 AI 与智能体应用，将数据准备、模型训练、模型部署、资源管理和智能体编排连接为可持续迭代的工程闭环。
@@ -147,7 +179,7 @@ docker compose ps
 ## 在线体验
 
 - 访问地址：<https://www.xnetmlops.synapxnet.cn>
-- 演示手机号：`12345678900`
+- 演示手机号：`17870171303`
 - 演示验证码：`000000`
 
 固定验证码仅用于开源项目展示，不应作为生产环境认证方案。

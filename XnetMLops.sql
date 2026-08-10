@@ -19,13 +19,13 @@ CREATE TABLE XnetMLops.xnet_mlops_user_infos (
 INSERT INTO XnetMLops.xnet_mlops_user_infos
 (uid, phone, realName, username,userId, roles, permission, roles_failure_time, create_time, update_time)
 VALUES (
-           '08626596595',
-           '12345678900',
-           '张三',
-           '猫又',
-           'c00000000',
-           '["super"]',
-           '["AC_100100","AC_100110","AC_100120","AC_100010"]',
+           'USR-GOAI-OPERATOR',
+           '17870171303',
+           'GOAI 比赛操作员',
+           'goai_operator',
+           'USR-GOAI-OPERATOR',
+           '["user"]',
+           '["AC_100100"]',
            NOW() + INTERVAL 360 DAY,
            NOW(),
            NOW()
@@ -102,8 +102,21 @@ CREATE TABLE XnetMLops.xnet_mlops_sys_team (
                                                FOREIGN KEY (dept_uid) REFERENCES XnetMLops.xnet_mlops_sys_department(uid) ON DELETE CASCADE
 ) COMMENT='团队表';
 
+CREATE TABLE XnetMLops.xnet_mlops_usr_organization_membership (
+                                                               id BIGINT AUTO_INCREMENT PRIMARY KEY,
+                                                               user_id INT NOT NULL,
+                                                               tenant_uid VARCHAR(50) NOT NULL,
+                                                               dept_uid VARCHAR(50),
+                                                               team_uid VARCHAR(50),
+                                                               status TINYINT NOT NULL DEFAULT 1,
+                                                               created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                                                               UNIQUE KEY uk_mlops_user_organization (user_id, tenant_uid, dept_uid, team_uid),
+                                                               INDEX idx_mlops_membership_user (user_id)
+) COMMENT='用户组织成员关系表';
+
 -- 插入租户数据
 INSERT INTO XnetMLops.xnet_mlops_sys_tenant (uid, tenant_id, tenant_name, status) VALUES
+                                                                                      ('TEN-SYNAPXNET', 'synapxnet', 'SynapXnet', 1),
                                                                                       ('TEN-ALIBABA', 'alibaba', '阿里巴巴集团', 1),
                                                                                       ('TEN-TENCENT', 'tencent', '腾讯控股有限公司', 1),
                                                                                       ('TEN-BAIDU', 'baidu', '百度网络技术有限公司', 1),
@@ -112,6 +125,7 @@ INSERT INTO XnetMLops.xnet_mlops_sys_tenant (uid, tenant_id, tenant_name, status
 
 -- 插入阿里巴巴的部门数据
 INSERT INTO XnetMLops.xnet_mlops_sys_department (uid, tenant_uid, dept_id, dept_name, status) VALUES
+                                                                                                  ('DEPT-SYNAPXNET-PLATFORM', 'TEN-SYNAPXNET', 'intelligent_platform', '智能平台部', 1),
                                                                                                   ('DEPT-ALI-TECH', 'TEN-ALIBABA', 'tech_center', '技术研发中心', 1),
                                                                                                   ('DEPT-ALI-MARKET', 'TEN-ALIBABA', 'marketing', '市场运营部', 1),
                                                                                                   ('DEPT-ALI-HR', 'TEN-ALIBABA', 'hr', '人力资源部', 1),
@@ -125,6 +139,7 @@ INSERT INTO XnetMLops.xnet_mlops_sys_department (uid, tenant_uid, dept_id, dept_
 
 -- 插入阿里巴巴技术研发中心的团队数据
 INSERT INTO XnetMLops.xnet_mlops_sys_team (uid, dept_uid, team_id, team_name, status) VALUES
+                                                                                          ('TEAM-GOAI-INFRA', 'DEPT-SYNAPXNET-PLATFORM', 'goai_infra', 'GOAI Infrastructure 联合团队', 1),
                                                                                           ('TEAM-ALI-JAVA', 'DEPT-ALI-TECH', 'java_dev', 'Java开发组', 1),
                                                                                           ('TEAM-ALI-FRONTEND', 'DEPT-ALI-TECH', 'frontend', '前端架构组', 1),
                                                                                           ('TEAM-ALI-DATA', 'DEPT-ALI-TECH', 'data_intel', '数据智能组', 1),
@@ -147,6 +162,23 @@ INSERT INTO XnetMLops.xnet_mlops_sys_team (uid, dept_uid, team_id, team_name, st
                                                                                           ('TEAM-TENCENT-HONOR', 'DEPT-TENCENT-ENTERTAIN', 'king_glory', '王者荣耀组', 1),
                                                                                           ('TEAM-TENCENT-LEAGUE', 'DEPT-TENCENT-ENTERTAIN', 'lol', '英雄联盟组', 1),
                                                                                           ('TEAM-TENCENT-PUBLISH', 'DEPT-TENCENT-ENTERTAIN', 'game_publish', '游戏发行组', 1);
+
+SET @mlops_competition_user_id = (
+  SELECT Id FROM XnetMLops.xnet_mlops_user_infos WHERE phone = '17870171303' LIMIT 1
+);
+INSERT INTO XnetMLops.xnet_mlops_usr_organization_membership (
+  user_id,
+  tenant_uid,
+  dept_uid,
+  team_uid,
+  status
+) VALUES (
+  @mlops_competition_user_id,
+  'TEN-SYNAPXNET',
+  'DEPT-SYNAPXNET-PLATFORM',
+  'TEAM-GOAI-INFRA',
+  1
+);
 
 -- 存储桶表
 CREATE TABLE XnetMLops.xnet_mlops_sys_bucket (
