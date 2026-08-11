@@ -173,8 +173,16 @@ class DeploymentActionServiceTest {
                         new MepAgentDtos.VerificationPolicy(
                                 new BigDecimal("0.02"), new BigDecimal("800"))),
                 "apr_goai_demo_approved",
+                "feature-drift-full-recovery-v2",
+                "a".repeat(64),
+                "risk-deployment-rollback",
+                deployment.getUid(),
+                17L,
                 "42",
+                "b".repeat(64),
+                true,
                 "模型输入契约维度不匹配，回滚到已验证修订",
+                "idem_rollback_001",
                 dryRun);
     }
 

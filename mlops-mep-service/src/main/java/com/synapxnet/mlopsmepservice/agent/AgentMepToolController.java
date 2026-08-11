@@ -19,6 +19,7 @@ public class AgentMepToolController {
     private final DeploymentEvidenceService deploymentEvidenceService;
     private final InferenceProbeService probeService;
     private final DeploymentActionService actionService;
+    private final CompetitionModelLifecycleService competitionLifecycleService;
 
     /**
      * 创建 MEP Agent 工具 Controller。
@@ -26,21 +27,24 @@ public class AgentMepToolController {
      * @param deploymentEvidenceService 部署证据服务
      * @param probeService 推理探针服务
      * @param actionService 受控部署动作服务
+     * @param competitionLifecycleService 比赛部署状态服务
      */
     public AgentMepToolController(
             DeploymentEvidenceService deploymentEvidenceService,
             InferenceProbeService probeService,
-            DeploymentActionService actionService) {
+            DeploymentActionService actionService,
+            CompetitionModelLifecycleService competitionLifecycleService) {
         this.deploymentEvidenceService = deploymentEvidenceService;
         this.probeService = probeService;
         this.actionService = actionService;
+        this.competitionLifecycleService = competitionLifecycleService;
     }
 
     /**
      * 获取部署、模型契约、修订和 Runtime 实际状态证据。
      */
     @PostMapping("/api/agent/v1/tools/mlops.deployment.get:invoke")
-    public AgentContract.ToolResponse<MepAgentDtos.DeploymentEvidence> deployment(
+    public AgentContract.ToolResponse<?> deployment(
             @RequestBody AgentContract.ToolRequest<MepAgentDtos.DeploymentGetArguments> body,
             HttpServletRequest servletRequest) {
         long startedNanos = System.nanoTime();
@@ -48,6 +52,11 @@ public class AgentMepToolController {
         AgentContract.RequestContext context = AgentContract.requireContext(servletRequest, toolName, body);
         if (body.arguments() == null) {
             throw new AgentContractException(400, "INVALID_ARGUMENT", "arguments 不能为空");
+        }
+        if (competitionLifecycleService.supports(body.arguments().deploymentUid())) {
+            return AgentContract.success(
+                    competitionLifecycleService.deploymentEvidence(context, body.arguments().deploymentUid()),
+                    context, "XnetMLOps/competition-deployment", "42", startedNanos);
         }
         MepAgentDtos.DeploymentEvidence evidence = deploymentEvidenceService.get(
                 body.arguments().deploymentUid(), Boolean.TRUE.equals(body.arguments().includeRevisions()));
@@ -59,12 +68,17 @@ public class AgentMepToolController {
      * 对授权 Fixture 执行契约检查和真实模型端点探针。
      */
     @PostMapping("/api/agent/v1/tools/mlops.inference.probe:invoke")
-    public AgentContract.ToolResponse<MepAgentDtos.InferenceProbeResult> probe(
+    public AgentContract.ToolResponse<?> probe(
             @RequestBody AgentContract.ToolRequest<MepAgentDtos.InferenceProbeArguments> body,
             HttpServletRequest servletRequest) {
         long startedNanos = System.nanoTime();
         String toolName = "mlops.inference.probe";
         AgentContract.RequestContext context = AgentContract.requireContext(servletRequest, toolName, body);
+        if (body.arguments() != null && competitionLifecycleService.supports(body.arguments().deploymentUid())) {
+            return AgentContract.success(
+                    competitionLifecycleService.probe(context, body.arguments()), context,
+                    "XnetMLOps/competition-probe", "42", startedNanos);
+        }
         MepAgentDtos.InferenceProbeResult result = probeService.probe(body.arguments(), context);
         return AgentContract.success(result, context, "XnetMLops/mep-probe", result.resultDigest(), startedNanos);
     }
@@ -73,12 +87,15 @@ public class AgentMepToolController {
      * 在审批、幂等和资源版本校验通过后受理高风险回滚。
      */
     @PostMapping("/api/agent/v1/tools/mlops.deployment.rollback:invoke")
-    public AgentContract.ToolResponse<MepAgentDtos.RollbackAcceptance> rollback(
+    public AgentContract.ToolResponse<?> rollback(
             @RequestBody AgentContract.ToolRequest<MepAgentDtos.RollbackArguments> body,
             HttpServletRequest servletRequest) {
         long startedNanos = System.nanoTime();
         String toolName = "mlops.deployment.rollback";
         AgentContract.RequestContext context = AgentContract.requireContext(servletRequest, toolName, body);
+        if (body.arguments() != null && competitionLifecycleService.supports(body.arguments().deploymentUid())) {
+            return competitionLifecycleService.rollback(body, context);
+        }
         DeploymentActionService.RollbackOutcome outcome = actionService.submit(body, context);
         return AgentContract.successWithReceipt(
                 outcome.acceptance(), context, "XnetMLops/mep-action", body.expectedResourceVersion(),

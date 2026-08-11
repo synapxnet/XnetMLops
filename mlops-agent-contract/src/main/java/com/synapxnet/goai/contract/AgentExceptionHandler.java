@@ -1,6 +1,10 @@
 package com.synapxnet.goai.contract;
 
 import jakarta.servlet.http.HttpServletRequest;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.core.Ordered;
+import org.springframework.core.annotation.Order;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -11,7 +15,10 @@ import java.time.Instant;
  * 将预期契约异常转换为公共错误包络，并避免向客户端泄露堆栈和凭据。
  */
 @RestControllerAdvice
+@Order(Ordered.HIGHEST_PRECEDENCE)
 final class AgentExceptionHandler {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(AgentExceptionHandler.class);
 
     /**
      * 转换明确的契约、鉴权和治理异常。
@@ -25,6 +32,9 @@ final class AgentExceptionHandler {
             AgentContractException exception,
             HttpServletRequest request) {
         AgentContract.RequestContext context = requestContext(request);
+        LOGGER.warn(
+                "Agent 工具请求被安全拒绝：code={}, status={}, toolName={}",
+                exception.getCode(), exception.getHttpStatus(), context.toolName());
         AgentContract.ToolMeta meta = new AgentContract.ToolMeta(
                 context.requestId(), context.workspaceId(), context.incidentId(), context.traceId(),
                 context.toolName(), AgentContract.CONTRACT_VERSION, Instant.now(), 0L,
