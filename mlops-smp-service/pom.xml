@@ -73,6 +73,11 @@
             <version>3.0.4</version>
             <scope>test</scope>
         </dependency>
+        <dependency>
+            <groupId>com.h2database</groupId>
+            <artifactId>h2</artifactId>
+            <scope>test</scope>
+        </dependency>
         <!-- Hadoop依赖 -->
         <!-- 只保留 hadoop-client，它已经包含 hadoop-common 和 hadoop-hdfs -->
         <dependency>

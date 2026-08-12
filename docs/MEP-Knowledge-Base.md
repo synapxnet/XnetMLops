@@ -148,7 +148,7 @@ mybatis.configuration.map-underscore-to-camel-case: true
 docker.host: unix:///var/run/docker.sock
 mtp.service.url: http://localhost:8183
 smp.service.url: http://localhost:8185
-# openclaw.encryption.key: XnetMLops2026Key (默认值)
+# openclaw.encryption.key: ${OPENCLAW_ENCRYPTION_KEY}（必须通过环境变量注入）
 ```
 
 ---
