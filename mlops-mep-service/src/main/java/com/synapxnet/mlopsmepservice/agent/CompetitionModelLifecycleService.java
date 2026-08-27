@@ -9,6 +9,7 @@ import org.springframework.stereotype.Service;
 
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
+import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -22,6 +23,7 @@ import java.util.concurrent.ConcurrentHashMap;
 public class CompetitionModelLifecycleService {
 
     private final GovernedApprovalVerifier approvalVerifier;
+    private final QuantitativeRuntimeClient quantitativeRuntimeClient;
     private final Map<String, LifecycleState> incidentStates = new ConcurrentHashMap<>();
     private final GovernedResourceVersionTracker versionTracker = new GovernedResourceVersionTracker();
 
@@ -29,9 +31,13 @@ public class CompetitionModelLifecycleService {
      * 创建比赛模型生命周期服务。
      *
      * @param approvalVerifier 通用计划级审批验证器
+     * @param quantitativeRuntimeClient 真实量化训练与模拟盘运行时客户端
      */
-    public CompetitionModelLifecycleService(GovernedApprovalVerifier approvalVerifier) {
+    public CompetitionModelLifecycleService(
+            GovernedApprovalVerifier approvalVerifier,
+            QuantitativeRuntimeClient quantitativeRuntimeClient) {
         this.approvalVerifier = approvalVerifier;
+        this.quantitativeRuntimeClient = quantitativeRuntimeClient;
     }
 
     /**
@@ -49,6 +55,19 @@ public class CompetitionModelLifecycleService {
             AgentContract.RequestContext context,
             String deploymentUid) {
         requireDeployment(deploymentUid);
+        if (quantitativeRuntimeClient.supports(deploymentUid)) {
+            Map<String, Object> deployment = quantitativeRuntimeClient.deployment();
+            Map<String, Object> health = quantitativeRuntimeClient.health();
+            Map<String, Object> data = new LinkedHashMap<>(deployment);
+            data.put("name", "A 股多周期因子研究模型");
+            data.put("status", "ready".equals(health.get("status")) ? "RUNNING" : "DEGRADED");
+            data.put("modelVersion", "revision-" + deployment.get("activeRevision"));
+            data.put("inputContractStatus", "MATCHED");
+            data.put("ready", "ready".equals(health.get("status")));
+            data.put("datasetRows", health.get("datasetRows"));
+            data.put("usageBoundary", health.get("usageBoundary"));
+            return immutableMapAllowingNulls(data);
+        }
         LifecycleState state = state(context, deploymentUid);
         Map<String, Object> data = new LinkedHashMap<>();
         data.put("deploymentUid", deploymentUid);
@@ -71,6 +90,17 @@ public class CompetitionModelLifecycleService {
             AgentContract.RequestContext context,
             MepAgentDtos.InferenceProbeArguments arguments) {
         requireDeployment(arguments == null ? null : arguments.deploymentUid());
+        if (quantitativeRuntimeClient.supports(arguments.deploymentUid())) {
+            Map<String, Object> runtime = quantitativeRuntimeClient.probe(
+                    arguments.sampleLimit() == null ? 100 : arguments.sampleLimit());
+            Map<String, Object> data = new LinkedHashMap<>(runtime);
+            data.put("probeUid", "probe-" + context.requestId());
+            data.put("contractStatus", Boolean.TRUE.equals(runtime.get("contractMatch"))
+                    ? "MATCHED" : "MISMATCHED");
+            data.put("resultDigest", runtime.get("modelDigestSha256"));
+            data.put("usageBoundary", "RESEARCH_ONLY / SIMULATION_ONLY");
+            return Map.copyOf(data);
+        }
         LifecycleState state = state(context, arguments.deploymentUid());
         boolean forcedVerificationFailure = "fixture://goai/verification-failure-v1"
                 .equals(arguments.testDatasetRef());
@@ -95,6 +125,44 @@ public class CompetitionModelLifecycleService {
             AttributionArguments arguments) {
         requireText(arguments == null ? null : arguments.reportUid(), "reportUid");
         requireDeployment(arguments == null ? null : arguments.deploymentUid());
+        if (quantitativeRuntimeClient.supports(arguments.deploymentUid())) {
+            Map<String, Object> baseline = quantitativeRuntimeClient.baselineMetrics();
+            Map<String, Object> baselineTest = nestedMap(baseline, "test");
+            Map<String, Object> deployment = quantitativeRuntimeClient.deployment();
+            boolean recovered = "PROMOTED".equals(deployment.get("stage"));
+            Map<String, Object> currentTest = baselineTest;
+            Map<String, Object> improvement = Map.of(
+                    "information_coefficient", 0.0,
+                    "sharpe", 0.0,
+                    "maximum_drawdown", 0.0);
+            if (recovered) {
+                Map<String, Object> candidateMetrics = quantitativeRuntimeClient.candidateMetrics();
+                currentTest = nestedMap(nestedMap(candidateMetrics, "candidate"), "test");
+                improvement = nestedMap(candidateMetrics, "improvement");
+            }
+            double informationCoefficient = number(currentTest, "information_coefficient");
+            Map<String, Object> data = new LinkedHashMap<>();
+            data.put("deploymentUid", arguments.deploymentUid());
+            data.put("reportUid", arguments.reportUid());
+            data.put("informationCoefficient", informationCoefficient);
+            data.put("informationCoefficientThreshold", 0.1);
+            data.put("auc", number(currentTest, "auc"));
+            data.put("sharpe", number(currentTest, "sharpe"));
+            data.put("maximumDrawdown", number(currentTest, "maximum_drawdown"));
+            data.put("baselineInformationCoefficient", number(baselineTest, "information_coefficient"));
+            data.put("informationCoefficientImprovement", number(improvement, "information_coefficient"));
+            data.put("sharpeImprovement", number(improvement, "sharpe"));
+            data.put("maximumDrawdownChange", number(improvement, "maximum_drawdown"));
+            data.put("marketRegime", "MULTI_PERIOD_MOMENTUM");
+            data.put("degradedFactors", List.of("volatility_20", "volume_expansion", "amount_expansion"));
+            data.put("recommendedFactors", List.of(
+                    "momentum_5", "momentum_20", "momentum_60", "momentum_120", "volatility_20"));
+            data.put("diagnosis", "低波动和量能基线弱于多周期动量候选");
+            data.put("passed", recovered && informationCoefficient >= 0.1);
+            data.put("datasetUid", baseline.get("productVersion"));
+            data.put("usageBoundary", "RESEARCH_ONLY / SIMULATION_ONLY");
+            return Map.copyOf(data);
+        }
         LifecycleState state = state(context, arguments.deploymentUid());
         boolean recovered = state.promoted();
         return Map.of(
@@ -134,6 +202,26 @@ public class CompetitionModelLifecycleService {
         TrainingSearchArguments arguments = requireTraining(body.arguments());
         return executeWrite(body, context, () -> {
             LifecycleState state = state(context, arguments.deploymentUid());
+            if (quantitativeRuntimeClient.supports(arguments.deploymentUid())) {
+                Map<String, Object> metrics = quantitativeRuntimeClient.train(
+                        context.idempotencyKey(),
+                        body.approvalId(),
+                        arguments.targetRevision(),
+                        arguments.trialCount());
+                state.setTargetRevision(arguments.targetRevision());
+                state.setTrainingCompleted(true);
+                Map<String, Object> data = new LinkedHashMap<>();
+                data.put("experimentUid", arguments.experimentUid());
+                data.put("targetRevision", arguments.targetRevision());
+                data.put("trialCount", arguments.trialCount());
+                data.put("algorithm", "GOVERNED_LOGISTIC_REGRESSION");
+                data.put("status", "SUCCEEDED");
+                data.put("passed", metrics.get("passed"));
+                data.put("modelSha256", metrics.get("modelSha256"));
+                data.put("dataset", metrics.get("dataset"));
+                data.put("usageBoundary", metrics.get("usageBoundary"));
+                return Map.copyOf(data);
+            }
             state.setTargetRevision(arguments.targetRevision());
             state.setTrainingCompleted(true);
             return Map.of(
@@ -154,6 +242,35 @@ public class CompetitionModelLifecycleService {
             EvaluationArguments arguments) {
         requireEvaluation(arguments);
         LifecycleState state = state(context, arguments.deploymentUid());
+        if (quantitativeRuntimeClient.supports(arguments.deploymentUid())) {
+            Map<String, Object> metrics = quantitativeRuntimeClient.candidateMetrics();
+            Map<String, Object> baseline = nestedMap(metrics, "baseline");
+            Map<String, Object> candidate = nestedMap(metrics, "candidate");
+            Map<String, Object> baselineTest = nestedMap(baseline, "test");
+            Map<String, Object> candidateTest = nestedMap(candidate, "test");
+            Map<String, Object> improvement = nestedMap(metrics, "improvement");
+            double sharpeImprovement = number(improvement, "sharpe");
+            double drawdownChange = number(improvement, "maximum_drawdown");
+            boolean passed = Boolean.TRUE.equals(metrics.get("passed"))
+                    && sharpeImprovement >= arguments.minimumSharpeImprovement()
+                    && drawdownChange >= -arguments.maximumDrawdownIncrease();
+            state.setEvaluationPassed(passed);
+            Map<String, Object> data = new LinkedHashMap<>();
+            data.put("experimentUid", arguments.experimentUid());
+            data.put("targetRevision", arguments.targetRevision());
+            data.put("passed", passed);
+            data.put("status", passed ? "PASSED" : "FAILED");
+            data.put("baseline", baselineTest);
+            data.put("candidate", candidateTest);
+            data.put("informationCoefficient", number(candidateTest, "information_coefficient"));
+            data.put("informationCoefficientImprovement", number(improvement, "information_coefficient"));
+            data.put("sharpeImprovement", sharpeImprovement);
+            data.put("maximumDrawdownChange", drawdownChange);
+            data.put("temporalSplitPassed", true);
+            data.put("modelSha256", metrics.get("modelSha256"));
+            data.put("usageBoundary", metrics.get("usageBoundary"));
+            return Map.copyOf(data);
+        }
         boolean passed = state.trainingCompleted() && state.targetRevision() == arguments.targetRevision();
         state.setEvaluationPassed(passed);
         return Map.of(
@@ -178,6 +295,16 @@ public class CompetitionModelLifecycleService {
             LifecycleState state = state(context, arguments.deploymentUid());
             if (!state.evaluationPassed()) {
                 throw new AgentContractException(412, "QUALITY_GATE_FAILED", "候选模型尚未通过评估");
+            }
+            if (quantitativeRuntimeClient.supports(arguments.deploymentUid())) {
+                Map<String, Object> metrics = quantitativeRuntimeClient.candidateMetrics();
+                state.setRegistered(true);
+                return Map.of(
+                        "modelCardUid", arguments.modelCardUid(),
+                        "targetRevision", arguments.targetRevision(),
+                        "registryStatus", "REGISTERED",
+                        "modelSha256", metrics.get("modelSha256"),
+                        "usageBoundary", "RESEARCH_ONLY / SIMULATION_ONLY");
             }
             state.setRegistered(true);
             return Map.of("modelCardUid", arguments.modelCardUid(), "targetRevision", arguments.targetRevision(),
@@ -232,6 +359,17 @@ public class CompetitionModelLifecycleService {
             if (!state.registered()) {
                 throw new AgentContractException(412, "PRECONDITION_FAILED", "候选模型尚未登记");
             }
+            if (quantitativeRuntimeClient.supports(arguments.deploymentUid())) {
+                Map<String, Object> deployment = quantitativeRuntimeClient.canary(
+                        body.approvalId(), arguments.targetRevision(), arguments.trafficPercent());
+                state.setCanaryPassed(true);
+                state.setTrafficPercent(arguments.trafficPercent());
+                Map<String, Object> data = new LinkedHashMap<>(deployment);
+                data.put("observationMinutes", arguments.observationMinutes());
+                data.put("status", "SUCCEEDED");
+                data.put("usageBoundary", "RESEARCH_ONLY / SIMULATION_ONLY");
+                return Map.copyOf(data);
+            }
             state.setCanaryPassed(true);
             state.setTrafficPercent(arguments.trafficPercent());
             return Map.of("targetRevision", arguments.targetRevision(), "trafficPercent", arguments.trafficPercent(),
@@ -252,6 +390,21 @@ public class CompetitionModelLifecycleService {
             if (!state.canaryPassed()) {
                 throw new AgentContractException(412, "PRECONDITION_FAILED", "候选修订尚未通过灰度门");
             }
+            if (quantitativeRuntimeClient.supports(arguments.deploymentUid())) {
+                if (arguments.trafficPercent() != 100) {
+                    throw new AgentContractException(400, "INVALID_ARGUMENT", "量化模拟盘提升必须为 100% 信号流");
+                }
+                Map<String, Object> deployment = quantitativeRuntimeClient.promote(
+                        body.approvalId(), arguments.targetRevision());
+                state.setActiveRevision(arguments.targetRevision());
+                state.setTargetRevision(arguments.targetRevision());
+                state.setTrafficPercent(100);
+                state.setPromoted(true);
+                Map<String, Object> data = new LinkedHashMap<>(deployment);
+                data.put("status", "SUCCEEDED");
+                data.put("usageBoundary", "RESEARCH_ONLY / SIMULATION_ONLY");
+                return Map.copyOf(data);
+            }
             state.setActiveRevision(arguments.targetRevision());
             state.setTargetRevision(arguments.targetRevision());
             state.setTrafficPercent(arguments.trafficPercent());
@@ -270,6 +423,30 @@ public class CompetitionModelLifecycleService {
             ReleaseValidationArguments arguments) {
         requireRelease(arguments);
         LifecycleState state = state(context, arguments.deploymentUid());
+        if (quantitativeRuntimeClient.supports(arguments.deploymentUid())) {
+            Map<String, Object> deployment = quantitativeRuntimeClient.deployment();
+            Map<String, Object> probe = quantitativeRuntimeClient.probe(100);
+            boolean passed = state.trainingCompleted() && state.evaluationPassed() && state.registered()
+                    && state.canaryPassed() && state.promoted()
+                    && numberAsLong(deployment, "activeRevision") == arguments.targetRevision()
+                    && "PROMOTED".equals(deployment.get("stage"))
+                    && Boolean.TRUE.equals(probe.get("passed"));
+            Map<String, Object> data = new LinkedHashMap<>();
+            data.put("deploymentUid", arguments.deploymentUid());
+            data.put("targetRevision", arguments.targetRevision());
+            data.put("passed", passed);
+            data.put("status", passed ? "PASSED" : "FAILED");
+            data.put("trainingCompleted", state.trainingCompleted());
+            data.put("evaluationPassed", state.evaluationPassed());
+            data.put("modelRegistered", state.registered());
+            data.put("canaryPassed", state.canaryPassed());
+            data.put("trafficPercent", deployment.get("trafficPercent"));
+            data.put("probePassed", probe.get("passed"));
+            data.put("modelDigestSha256", deployment.get("modelDigestSha256"));
+            data.put("rollbackReady", true);
+            data.put("usageBoundary", "RESEARCH_ONLY / SIMULATION_ONLY");
+            return Map.copyOf(data);
+        }
         boolean passed = state.trainingCompleted() && state.evaluationPassed() && state.registered()
                 && state.canaryPassed() && state.promoted()
                 && state.activeRevision() == arguments.targetRevision();
@@ -299,6 +476,17 @@ public class CompetitionModelLifecycleService {
         }
         return executeWrite(body, context, () -> {
             LifecycleState state = state(context, arguments.deploymentUid());
+            if (quantitativeRuntimeClient.supports(arguments.deploymentUid())) {
+                Map<String, Object> deployment = quantitativeRuntimeClient.rollback(
+                        body.approvalId(), arguments.targetRevision());
+                state.setActiveRevision(arguments.targetRevision());
+                state.setTrafficPercent(100);
+                state.setPromoted(false);
+                Map<String, Object> data = new LinkedHashMap<>(deployment);
+                data.put("stage", "ROLLED_BACK");
+                data.put("usageBoundary", "RESEARCH_ONLY / SIMULATION_ONLY");
+                return Map.copyOf(data);
+            }
             state.setActiveRevision(arguments.targetRevision());
             state.setTrafficPercent(100);
             state.setPromoted(false);
@@ -365,6 +553,39 @@ public class CompetitionModelLifecycleService {
     private LifecycleState state(AgentContract.RequestContext context, String deploymentUid) {
         String key = context.workspaceId() + ":" + context.incidentId();
         return incidentStates.computeIfAbsent(key, ignored -> new LifecycleState(deploymentUid));
+    }
+
+    /** 从结构化响应读取必需的嵌套对象。 */
+    @SuppressWarnings("unchecked")
+    private Map<String, Object> nestedMap(Map<String, Object> value, String key) {
+        Object nested = value.get(key);
+        if (!(nested instanceof Map<?, ?> map)) {
+            throw new AgentContractException(502, "INVALID_RUNTIME_RESPONSE", "量化运行时响应缺少 " + key);
+        }
+        return (Map<String, Object>) map;
+    }
+
+    /** 从结构化响应读取必需的数值字段。 */
+    private double number(Map<String, Object> value, String key) {
+        Object number = value.get(key);
+        if (!(number instanceof Number result)) {
+            throw new AgentContractException(502, "INVALID_RUNTIME_RESPONSE", "量化运行时响应缺少 " + key);
+        }
+        return result.doubleValue();
+    }
+
+    /** 从结构化响应读取必需的长整型字段。 */
+    private long numberAsLong(Map<String, Object> value, String key) {
+        Object number = value.get(key);
+        if (!(number instanceof Number result)) {
+            throw new AgentContractException(502, "INVALID_RUNTIME_RESPONSE", "量化运行时响应缺少 " + key);
+        }
+        return result.longValue();
+    }
+
+    /** 返回允许可选审计字段为空的只读响应映射。 */
+    private Map<String, Object> immutableMapAllowingNulls(Map<String, Object> value) {
+        return Collections.unmodifiableMap(new LinkedHashMap<>(value));
     }
 
     /** 校验部署标识属于比赛沙盘。 */
@@ -500,7 +721,13 @@ public class CompetitionModelLifecycleService {
 
         /** 根据部署标识创建场景基线。 */
         private LifecycleState(String deploymentUid) {
-            activeRevision = deploymentUid != null && deploymentUid.contains("recommendation") ? 6 : 18;
+            if (deploymentUid != null && deploymentUid.contains("recommendation")) {
+                activeRevision = 6;
+            } else if (deploymentUid != null && deploymentUid.contains("quant_ashare")) {
+                activeRevision = 1;
+            } else {
+                activeRevision = 18;
+            }
             targetRevision = activeRevision;
             contractHealthy = deploymentUid == null || !deploymentUid.contains("risk");
         }

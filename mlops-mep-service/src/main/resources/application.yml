@@ -36,6 +36,12 @@ smp:
   service:
     url: ${SMP_SERVICE_URL:http://localhost:8185}
 
+# 量化研究运行时仅在容器内部网络开放，服务令牌由部署环境注入。
+xnet:
+  quantitative:
+    runtime-url: ${QUANTITATIVE_RUNTIME_URL:http://quantitative-runtime:8091}
+    runtime-token: ${QUANT_RUNTIME_SERVICE_TOKEN:}
+
 logging:
   level:
     com.synapxnet.mlopsmepservice: DEBUG
