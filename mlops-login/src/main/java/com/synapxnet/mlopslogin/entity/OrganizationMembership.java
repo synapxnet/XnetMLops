@@ -13,4 +13,5 @@ public class OrganizationMembership {
     private String deptName;
     private String teamUid;
     private String teamName;
+    private boolean dataAccessEnabled;
 }

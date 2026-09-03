@@ -17,7 +17,7 @@ spec:
     spec:
       containers:
         - name: mlops-mep-service
-          image: 127.0.0.1/xnet-mlops/mlops-mep-service:latest
+          image: 192.168.10.132/xnet-mlops/mlops-mep-service:latest
           imagePullPolicy: Always
           ports:
             - containerPort: 8186

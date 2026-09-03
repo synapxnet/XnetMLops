@@ -20,7 +20,7 @@ spec:
         - name: harbor
       containers:
         - name: xnet-mlops-smp-service
-          image: 127.0.0.1/xnet-mlops/xnet-mlops-smp-service:${BUILD_NUMBER}
+          image: 192.168.10.132/xnet-mlops/xnet-mlops-smp-service:${BUILD_NUMBER}
           ports:
             - name: tcp-8185
               containerPort: 8185

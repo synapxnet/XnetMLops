@@ -18,7 +18,8 @@ public interface OrganizationMapper {
      */
     @Select("SELECT t.uid AS tenantUid, t.tenant_name AS tenantName, " +
             "d.uid AS deptUid, d.dept_name AS deptName, " +
-            "tm.uid AS teamUid, tm.team_name AS teamName " +
+            "tm.uid AS teamUid, tm.team_name AS teamName, " +
+            "m.data_access_enabled AS dataAccessEnabled " +
             "FROM xnet_mlops_user_infos u " +
             "JOIN xnet_mlops_usr_organization_membership m ON m.user_id = u.Id AND m.status = 1 " +
             "JOIN xnet_mlops_sys_tenant t ON t.uid = m.tenant_uid AND t.status = 1 " +
@@ -27,4 +28,25 @@ public interface OrganizationMapper {
             "WHERE u.phone = #{phone} AND u.roles_failure_time > NOW() " +
             "ORDER BY t.tenant_name, d.dept_name, tm.team_name")
     List<OrganizationMembership> findActiveMembershipsByPhone(@Param("phone") String phone);
+
+    /**
+     * 校验用户是否被明确授权访问指定团队的业务数据。
+     *
+     * @param phone 登录手机号
+     * @param tenantUid 租户唯一编码
+     * @param deptUid 部门唯一编码
+     * @param teamUid 团队唯一编码
+     * @return 有效数据访问成员关系数量
+     */
+    @Select("SELECT COUNT(*) FROM xnet_mlops_user_infos u " +
+            "JOIN xnet_mlops_usr_organization_membership m ON m.user_id = u.Id " +
+            "WHERE u.phone = #{phone} AND u.roles_failure_time > NOW() " +
+            "AND m.status = 1 AND m.data_access_enabled = 1 " +
+            "AND m.tenant_uid = #{tenantUid} AND m.dept_uid = #{deptUid} AND m.team_uid = #{teamUid}")
+    int countDataAccess(
+            @Param("phone") String phone,
+            @Param("tenantUid") String tenantUid,
+            @Param("deptUid") String deptUid,
+            @Param("teamUid") String teamUid
+    );
 }

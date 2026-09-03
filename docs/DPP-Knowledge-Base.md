@@ -16,9 +16,9 @@
 | 模块名称 | DPP (Data Processing Platform) 数据处理平台 |
 | 后端服务 | `mlops-dpp-service` (Spring Boot) |
 | 服务端口 | 8182 |
-| 数据库 | MySQL `XnetMLops` (127.0.0.1:3306) |
-| 存储系统 | HDFS (hdfs://127.0.0.1:8020) |
-| CI/CD | Jenkins (127.0.0.1:8080) |
+| 数据库 | MySQL `XnetMLops` (192.168.1.5:3306) |
+| 存储系统 | HDFS (hdfs://192.168.1.5:8020) |
+| CI/CD | Jenkins (192.168.1.5:8080) |
 | 缓存 | Redis（条件加载，用于 Jenkins 构建状态缓存） |
 | 前端路径 | `XnetMLops-web/apps/web-antd/src/views/DPP/` |
 | 路由前缀 | `/DPP/` |
@@ -639,10 +639,10 @@ smpRequestClient = createRequestClient(smpApiURL, { responseReturn: 'data' })
 
 ```properties
 server.port=8182
-spring.datasource.url=jdbc:mysql://127.0.0.1:3306/XnetMLops
-hdfs.path=hdfs://127.0.0.1:8020
+spring.datasource.url=jdbc:mysql://192.168.1.5:3306/XnetMLops
+hdfs.path=hdfs://192.168.1.5:8020
 hdfs.user=atguigu
-jenkins.url=http://127.0.0.1:8080
+jenkins.url=http://192.168.1.5:8080
 jenkins.username=atguigu
 jenkins.api-token=${JENKINS_API_TOKEN}
 spring.servlet.multipart.max-file-size=100GB
@@ -651,7 +651,7 @@ mybatis.configuration.map-underscore-to-camel-case=false
 
 ### 8.2 K8s 部署配置
 
-- **镜像**: `127.0.0.1/xnet-mlops/xnet-mlops-dpp-service:${BUILD_NUMBER}`
+- **镜像**: `192.168.10.132/xnet-mlops/xnet-mlops-dpp-service:${BUILD_NUMBER}`
 - **资源限制**: requests 500m/512Mi, limits 50CPU/16482Mi
 - **Service**: ClusterIP, 端口 8182
 - **Ingress**: nginx, 路径 `/dpp`
@@ -660,11 +660,11 @@ mybatis.configuration.map-underscore-to-camel-case=false
 
 | 系统 | 连接方式 | 用途 |
 |------|---------|------|
-| MySQL | JDBC 127.0.0.1:3306 | 所有元数据持久化 |
-| HDFS | WebHDFS 127.0.0.1:8020 | 数据集文件存储 |
-| Jenkins | REST API 127.0.0.1:8080 | 特征工程 Pipeline 执行和调度 |
+| MySQL | JDBC 192.168.1.5:3306 | 所有元数据持久化 |
+| HDFS | WebHDFS 192.168.1.5:8020 | 数据集文件存储 |
+| Jenkins | REST API 192.168.1.5:8080 | 特征工程 Pipeline 执行和调度 |
 | Redis | 条件配置 | Jenkins 构建状态缓存 (24h TTL) |
-| Harbor | 127.0.0.1 | 服务部署的 Docker 镜像仓库 |
+| Harbor | 192.168.10.132 | 服务部署的 Docker 镜像仓库 |
 | Milvus | 按知识库配置 (TODO) | RAG 向量数据库 |
 
 ---

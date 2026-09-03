@@ -10,7 +10,7 @@
     </parent>
     <groupId>com.synapxnet</groupId>
     <artifactId>mlops-xaa-service</artifactId>
-    <version>1.0.0</version>
+    <version>1.0.0-SNAPSHOT</version>
     <name>mlops-xaa-service</name>
     <description>Xnet AI Agent Service - XAA (Workflow and Skill Management)</description>
 

@@ -1,9 +1,4 @@
-<!-- GOAI-RELEASE-LINKS -->
-> GOAI competition release: [`goai-v1.1.0`](./GOAI-RELEASE.md) · [Security](./SECURITY.md) · [Notice](./NOTICE) · [CycloneDX SBOM](./sbom.cdx.json)
-
 <div align="center">
-
-**简体中文** | [English](./README.en-US.md) | [日本語](./README.ja-JP.md)
 
 # XnetMLops
 
@@ -18,39 +13,7 @@
 
 </div>
 
-![XnetMLops MLOps 分析中心](./docs/images/xnetmlops-analytics-2026.png)
-
-## 界面预览
-
-以下界面由配套前端仓库 [XnetMLops-web](https://github.com/synapxnet/XnetMLops-web) 提供，展示数据来自 `demo/showcase_data.sql`。
-
-### DPP 数据处理
-
-| 数据集管理 | RAG 知识库 |
-| --- | --- |
-| ![XnetMLops 数据集管理](./docs/images/xnetmlops-dpp-datasets.png) | ![XnetMLops RAG 知识库](./docs/images/xnetmlops-dpp-knowledge-base.png) |
-
-### MTP 模型训练与 MEP 模型部署
-
-| 训练任务 | 模型部署 |
-| --- | --- |
-| ![XnetMLops 训练任务](./docs/images/xnetmlops-mtp-training.png) | ![XnetMLops 模型部署](./docs/images/xnetmlops-mep-deployments.png) |
-
-### SMP 系统管理与 XAA 智能体
-
-| 工作站资源 | 智能体工作流 |
-| --- | --- |
-| ![XnetMLops 工作站资源](./docs/images/xnetmlops-smp-workstations.png) | ![XnetMLops 智能体工作流](./docs/images/xnetmlops-xaa-workflows.png) |
-
-| 元技能仓库 | 智能助手 |
-| --- | --- |
-| ![XnetMLops 元技能仓库](./docs/images/xnetmlops-xaa-skills.png) | ![XnetMLops 智能助手](./docs/images/xnetmlops-xaa-assistants.png) |
-
-### 演示入口与项目信息
-
-| 演示登录 | 关于项目 |
-| --- | --- |
-| ![XnetMLops 演示登录](./docs/images/xnetmlops-login.png) | ![XnetMLops 关于项目](./docs/images/xnetmlops-about.png) |
+![XnetMLops 分析页](./docs/images/xnetmlops-overview.png)
 
 ## 界面预览
 
@@ -89,12 +52,6 @@
 XnetMLops 是由 **SynapXnet 团队**开源的全流程 MLOps 平台，面向机器学习、生成式 AI 与智能体应用，将数据准备、模型训练、模型部署、资源管理和智能体编排连接为可持续迭代的工程闭环。
 
 本仓库是平台后端，与 [XnetMLops-web](https://github.com/synapxnet/XnetMLops-web) 前端仓库共同组成企业级、多租户、前后端分离系统。平台以独立微服务承载 DPP、MTP、MEP、SMP 与 XAA 五个核心业务域，可以对接 Hadoop、Jenkins、对象存储、镜像仓库与模型推理节点。
-
-## GOAI Competition 1.0.0
-
-`GOAI-Competition` 分支新增部署证据、真实 Fixture 推理探针和受审批保护的持久化回滚动作。写操作具备职责分离、幂等、乐观锁、进程恢复与独立验证；`dryRun=true` 只返回执行计划，不创建 Action、审计回执，也不修改数据库或 Runtime。
-
-[查看迁移、审批联调、调用样例和验证记录](./docs/goai-handoff/HANDOFF-GOAI-COMPETITION-1.0.0.md) · [配套模型证据页](https://github.com/synapxnet/XnetMLops-web/tree/GOAI-Competition)
 
 ## 项目优势
 

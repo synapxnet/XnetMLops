@@ -16,10 +16,10 @@
 | 模块名称 | MTP (Model Training Platform) 模型训练平台 |
 | 后端服务 | `mlops-mtp-service` (Spring Boot 3.4.6, Java 17) |
 | 服务端口 | 8183 |
-| 数据库 | MySQL `XnetMLops` (127.0.0.1:3306) |
-| 存储系统 | HDFS (hdfs://127.0.0.1:8020) |
-| CI/CD | Jenkins (127.0.0.1:8080) |
-| 缓存 | Redis (127.0.0.1:6379)，用于构建状态缓存和调度配置存储 |
+| 数据库 | MySQL `XnetMLops` (192.168.1.5:3306) |
+| 存储系统 | HDFS (hdfs://192.168.1.5:8020) |
+| CI/CD | Jenkins (192.168.1.5:8080) |
+| 缓存 | Redis (192.168.1.5:6379)，用于构建状态缓存和调度配置存储 |
 | 前端路径 | `XnetMLops-web/apps/web-antd/src/views/MTP/` |
 | API 路径 | `XnetMLops-web/apps/web-antd/src/views/SMP/api/` (共享 API 层) |
 | 路由前缀 | `/MTP/` |
@@ -952,12 +952,12 @@ spring.application.name=mlops-mtp-service
 server.port=8183
 
 # MySQL
-spring.datasource.url=jdbc:mysql://127.0.0.1:3306/XnetMLops?useSSL=false&serverTimezone=UTC
+spring.datasource.url=jdbc:mysql://192.168.1.5:3306/XnetMLops?useSSL=false&serverTimezone=UTC
 spring.datasource.username=root
 spring.datasource.password=${DB_PASSWORD}
 
 # HDFS
-hdfs.path=hdfs://127.0.0.1:8020
+hdfs.path=hdfs://192.168.1.5:8020
 hdfs.user=atguigu
 
 # 文件上传限制
@@ -973,12 +973,12 @@ chunked.temp.dir=/data/tmp/uploads
 app.temp.dir=/data/tmp
 
 # Jenkins
-jenkins.url=http://127.0.0.1:8080
+jenkins.url=http://192.168.1.5:8080
 jenkins.username=atguigu
 jenkins.api-token=${JENKINS_API_TOKEN}
 
 # Redis
-spring.data.redis.host=127.0.0.1
+spring.data.redis.host=192.168.1.5
 spring.data.redis.port=6379
 ```
 

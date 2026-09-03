@@ -16,7 +16,7 @@
 | 模块名称 | MEP (Model Endpoint Platform) 模型端点平台 |
 | 后端服务 | `mlops-mep-service` (Spring Boot 3.4.6, Java 17) |
 | 服务端口 | 8184 |
-| 数据库 | MySQL `XnetMLops` (127.0.0.1:3306) |
+| 数据库 | MySQL `XnetMLops` (192.168.1.5:3306) |
 | 前端路径 | `XnetMLops-web/apps/web-antd/src/views/MEP/` |
 | API 路径 | `XnetMLops-web/apps/web-antd/src/views/MEP/api/` |
 | 路由前缀 | `/MEP/` |
@@ -51,7 +51,7 @@ MEP 模块由五个核心子系统组成：
 - Vue 3 Composition API + TypeScript
 - Ant Design Vue（UI 组件库）
 - Vben Admin Pro 框架
-- 请求客户端: `mepRequestClient`（基础 URL: `/mep`，开发代理至 `http://127.0.0.1:8184`）
+- 请求客户端: `mepRequestClient`（基础 URL: `/mep`，开发代理至 `http://192.168.1.156:8184`）
 - 响应拦截器: `defaultResponseInterceptor({dataField:'data'})` + `responseReturn:'data'`（双重解包）
 
 ---
@@ -142,13 +142,13 @@ XnetMLops-web/apps/web-antd/src/views/MEP/
 
 ```yaml
 server.port: 8184
-spring.datasource.url: jdbc:mysql://127.0.0.1:3306/XnetMLops
+spring.datasource.url: jdbc:mysql://192.168.1.5:3306/XnetMLops
 mybatis.mapper-locations: classpath:mapper/*.xml
 mybatis.configuration.map-underscore-to-camel-case: true
 docker.host: unix:///var/run/docker.sock
 mtp.service.url: http://localhost:8183
 smp.service.url: http://localhost:8185
-# openclaw.encryption.key: ${OPENCLAW_ENCRYPTION_KEY}（必须通过环境变量注入）
+# openclaw.encryption.key: XnetMLops2026Key (默认值)
 ```
 
 ---
@@ -656,8 +656,8 @@ smp.service.url: http://localhost:8185
 **文件**: `api/request.ts`
 
 - **客户端**: `mepRequestClient` — `createRequestClient(mepApiURL, { responseReturn: 'data' })`
-- **开发环境 URL**: `/mep`（Vite 代理至 `http://127.0.0.1:8184`）
-- **生产环境 URL**: `http://127.0.0.1:8184/api`
+- **开发环境 URL**: `/mep`（Vite 代理至 `http://192.168.1.156:8184`）
+- **生产环境 URL**: `http://192.168.1.156:8184/api`
 - **超时**: 600,000ms（10 分钟）
 - **响应拦截**: `defaultResponseInterceptor({dataField:'data'})` + `responseReturn:'data'` — **双重解包模式**
 - **认证头**: `Bearer {accessToken}` + `X-User-Id`

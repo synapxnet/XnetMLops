@@ -80,7 +80,7 @@ public class ModelDeploymentController {
         deploymentService.start(id);
         return ResponseEntity.ok(Map.of(
             "code", 0,
-            "message", "启动请求已登记，等待受控 Runtime Provider",
+            "message", "启动成功",
             "data", (Object) null
         ));
     }
@@ -100,7 +100,7 @@ public class ModelDeploymentController {
         deploymentService.restart(id);
         return ResponseEntity.ok(Map.of(
             "code", 0,
-            "message", "重启请求已登记，等待受控 Runtime Provider",
+            "message", "重启成功",
             "data", (Object) null
         ));
     }

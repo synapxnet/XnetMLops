@@ -20,7 +20,7 @@ spec:
         - name: harbor
       containers:
         - name: xnet-mlops-login
-          image: 127.0.0.1/xnet-mlops/xnet-mlops-login:${BUILD_NUMBER}
+          image: 192.168.10.132/xnet-mlops/xnet-mlops-login:${BUILD_NUMBER}
           ports:
             - name: tcp-8181
               containerPort: 8181

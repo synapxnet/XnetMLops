@@ -233,12 +233,25 @@ CREATE TABLE XnetMLops.xnet_mlops_dpp_dataset (
                                                   team_name VARCHAR(255) COMMENT '团队名称',
                                                   level TINYINT NOT NULL COMMENT '组织层级(0-3)',
                                                   description VARCHAR(500) COMMENT '数据集描述',
+                                                  source_platform VARCHAR(64) COMMENT '来源平台',
+                                                  source_product_name VARCHAR(128) COMMENT '来源数据产品名称',
+                                                  source_product_version VARCHAR(128) COMMENT '来源数据产品版本',
+                                                  source_uri VARCHAR(512) COMMENT '不含凭据的来源定位符',
+                                                  row_count BIGINT COMMENT '真实记录数',
+                                                  byte_size BIGINT COMMENT '导入制品字节数',
+                                                  schema_digest_sha256 CHAR(64) COMMENT '字段契约摘要',
+                                                  artifact_digest_sha256 CHAR(64) COMMENT '来源制品摘要',
+                                                  lineage_reference VARCHAR(512) COMMENT 'DataOps 血缘引用',
+                                                  import_status VARCHAR(32) COMMENT '导入状态',
+                                                  imported_at DATETIME COMMENT '导入时间',
                                                   created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
                                                   updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 ) COMMENT '数据集表';
 
 CREATE INDEX idx_dataset_tenant ON XnetMLops.xnet_mlops_dpp_dataset(tenant_uid);
 CREATE INDEX idx_dataset_team ON XnetMLops.xnet_mlops_dpp_dataset(team_uid);
+CREATE UNIQUE INDEX uk_dataset_source_version
+    ON XnetMLops.xnet_mlops_dpp_dataset(source_platform, source_product_version);
 
 
 CREATE TABLE XnetMLops.xnet_mlops_mtp_algorithms (
@@ -408,6 +421,29 @@ CREATE TABLE XnetMLops.xnet_mlops_mtp_train_info (
                                                      FOREIGN KEY (task_uid) REFERENCES XnetMLops.xnet_mlops_mtp_train_task(uid) ON DELETE CASCADE
 );
 ALTER TABLE xnet_mlops_mtp_train_info ADD UNIQUE INDEX idx_job_uid (job_uid);
+
+CREATE TABLE XnetMLops.xnet_mlops_mtp_recommendation_run (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    run_uid VARCHAR(64) NOT NULL UNIQUE COMMENT '推荐训练运行标识',
+    dataset_id BIGINT NOT NULL COMMENT 'MLOps 数据集主键',
+    tenant_uid VARCHAR(128) NOT NULL COMMENT '租户边界',
+    user_id VARCHAR(128) NOT NULL COMMENT '发起用户',
+    product_version VARCHAR(128) NOT NULL COMMENT 'DataOps 数据产品版本',
+    approval_id VARCHAR(128) NOT NULL COMMENT '人工审批号',
+    idempotency_key VARCHAR(128) NOT NULL UNIQUE COMMENT '幂等键',
+    status VARCHAR(32) NOT NULL COMMENT '运行状态',
+    schema_digest_sha256 CHAR(64) NOT NULL COMMENT 'Schema 摘要',
+    artifact_digest_sha256 CHAR(64) NOT NULL COMMENT '训练输入摘要',
+    model_digest_sha256 CHAR(64) COMMENT '模型摘要',
+    artifact_reference VARCHAR(256) COMMENT '不含物理路径的制品引用',
+    metrics_json TEXT COMMENT '训练和测试指标',
+    error_summary VARCHAR(1000) COMMENT '失败摘要',
+    started_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    completed_at DATETIME NULL
+) COMMENT '推荐 DCN 训练运行审计表';
+
+CREATE INDEX idx_recommendation_run_tenant
+    ON XnetMLops.xnet_mlops_mtp_recommendation_run(tenant_uid, started_at);
 
 -- 调度训练任务表
 CREATE TABLE XnetMLops.xnet_mlops_mtp_train_schedule_info (

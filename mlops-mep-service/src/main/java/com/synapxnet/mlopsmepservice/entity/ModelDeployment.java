@@ -27,7 +27,4 @@ public class ModelDeployment {
     private String createdBy;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
-    private Long activeRevision;
-    private Long resourceVersion;
-    private LocalDateTime lastVerifiedAt;
 }

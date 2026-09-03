@@ -66,4 +66,4 @@ CREATE TABLE IF NOT EXISTS `xnet_mlops_smp_jenkins_masters` (
 -- INSERT INTO `xnet_mlops_smp_jenkins_masters`
 -- (`uid`, `name`, `host`, `port`, `username`, `encrypted_password`, `os_type`, `jenkins_port`, `status`)
 -- VALUES
--- (UUID(), 'jenkins-master-01', '127.0.0.1', 22, 'root', 'encrypted_password_here', 'linux', 8080, 'pending');
+-- (UUID(), 'jenkins-master-01', '192.168.1.100', 22, 'root', 'encrypted_password_here', 'linux', 8080, 'pending');

@@ -35,7 +35,6 @@ services:
       - DB_PASSWORD=${DB_PASSWORD:?DB_PASSWORD is required}
       - REDIS_HOST=${REDIS_HOST:?REDIS_HOST is required}
       - REDIS_PORT=${REDIS_PORT:-6379}
-      - JWT_SECRET=${JWT_SECRET:?JWT_SECRET is required}
     networks:
       - mlops-net
     restart: unless-stopped
@@ -55,7 +54,8 @@ services:
       - HDFS_PORT=${HDFS_PORT:-8020}
       - JENKINS_HOST=${JENKINS_HOST:?JENKINS_HOST is required}
       - JENKINS_PORT=${JENKINS_PORT:-8080}
-      - JENKINS_API_TOKEN=${JENKINS_API_TOKEN:?JENKINS_API_TOKEN is required}
+      - XNET_DATAOPS_API_BASE_URL=${XNET_DATAOPS_API_BASE_URL:?XNET_DATAOPS_API_BASE_URL is required}
+      - XNET_DATAOPS_SERVICE_TOKEN=${XNET_DATAOPS_SERVICE_TOKEN:-}
     volumes:
       - mlops-upload-data:/data/tmp
     networks:
@@ -77,11 +77,17 @@ services:
       - HDFS_PORT=${HDFS_PORT:-8020}
       - JENKINS_HOST=${JENKINS_HOST:?JENKINS_HOST is required}
       - JENKINS_PORT=${JENKINS_PORT:-8080}
-      - JENKINS_API_TOKEN=${JENKINS_API_TOKEN:?JENKINS_API_TOKEN is required}
       - REDIS_HOST=${REDIS_HOST:?REDIS_HOST is required}
       - REDIS_PORT=${REDIS_PORT:-6379}
+      - RECOMMENDATION_PG_URL=${RECOMMENDATION_PG_URL:?RECOMMENDATION_PG_URL is required}
+      - RECOMMENDATION_MLOPS_DB_USERNAME=${RECOMMENDATION_MLOPS_DB_USERNAME:-recommendation_mlops_reader}
+      - RECOMMENDATION_MLOPS_DB_PASSWORD=${RECOMMENDATION_MLOPS_DB_PASSWORD:?RECOMMENDATION_MLOPS_DB_PASSWORD is required}
+      - RECOMMENDATION_TRAINING_OUTPUT_ROOT=/data/recommendation-runs
+      - RECOMMENDATION_TRAINING_TIMEOUT_SECONDS=${RECOMMENDATION_TRAINING_TIMEOUT_SECONDS:-600}
+      - RECOMMENDATION_TRAINING_EPOCHS=${RECOMMENDATION_TRAINING_EPOCHS:-3}
     volumes:
       - mlops-upload-data:/data/tmp
+      - mlops-model-data:/data/recommendation-runs
     networks:
       - mlops-net
     restart: unless-stopped
@@ -120,7 +126,6 @@ services:
       - HDFS_PORT=${HDFS_PORT:-8020}
       - JENKINS_HOST=${JENKINS_HOST:?JENKINS_HOST is required}
       - JENKINS_PORT=${JENKINS_PORT:-8080}
-      - JENKINS_API_TOKEN=${JENKINS_API_TOKEN:?JENKINS_API_TOKEN is required}
     networks:
       - mlops-net
     restart: unless-stopped
@@ -151,3 +156,4 @@ networks:
 
 volumes:
   mlops-upload-data:
+  mlops-model-data:

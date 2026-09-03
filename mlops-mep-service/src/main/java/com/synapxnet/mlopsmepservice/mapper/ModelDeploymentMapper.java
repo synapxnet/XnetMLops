@@ -1,8 +1,6 @@
 package com.synapxnet.mlopsmepservice.mapper;
 
 import com.synapxnet.mlopsmepservice.entity.ModelDeployment;
-import com.synapxnet.mlopsmepservice.entity.DeploymentLog;
-import com.synapxnet.mlopsmepservice.entity.ServiceMetric;
 import org.apache.ibatis.annotations.*;
 
 import java.util.List;
@@ -45,29 +43,6 @@ public interface ModelDeploymentMapper {
 
     @Update("UPDATE xnet_mlops_mep_model_deployment SET replicas = #{replicas}, updated_at = NOW() WHERE id = #{id}")
     int updateReplicas(@Param("id") Long id, @Param("replicas") Integer replicas);
-
-    /**
-     * 查询真实持久化部署日志，按时间倒序限制条数。
-     *
-     * @param deploymentUid 部署 UID
-     * @param limit 最大条数
-     * @return 部署日志
-     */
-    @Select("SELECT * FROM xnet_mlops_mep_deployment_log WHERE deployment_uid = #{deploymentUid} "
-            + "ORDER BY timestamp DESC LIMIT #{limit}")
-    List<DeploymentLog> findLogs(
-            @Param("deploymentUid") String deploymentUid,
-            @Param("limit") Integer limit);
-
-    /**
-     * 查询真实持久化服务指标，不生成随机曲线。
-     *
-     * @param deploymentUid 部署 UID
-     * @return 最近 100 个指标点
-     */
-    @Select("SELECT * FROM xnet_mlops_mep_service_metrics WHERE deployment_uid = #{deploymentUid} "
-            + "ORDER BY timestamp DESC LIMIT 100")
-    List<ServiceMetric> findMetrics(@Param("deploymentUid") String deploymentUid);
 
     @Delete("DELETE FROM xnet_mlops_mep_model_deployment WHERE id = #{id}")
     int deleteById(Long id);

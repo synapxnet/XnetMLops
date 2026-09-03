@@ -20,7 +20,7 @@ spec:
         - name: harbor
       containers:
         - name: xnet-mlops-mtp-service
-          image: 127.0.0.1/xnet-mlops/xnet-mlops-mtp-service:${BUILD_NUMBER}
+          image: 192.168.10.132/xnet-mlops/xnet-mlops-mtp-service:${BUILD_NUMBER}
           ports:
             - name: tcp-8183
               containerPort: 8183

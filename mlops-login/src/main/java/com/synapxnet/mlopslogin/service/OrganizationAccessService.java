@@ -58,6 +58,42 @@ public class OrganizationAccessService {
     }
 
     /**
+     * 判断当前认证用户是否能读取指定团队范围的业务数据。
+     *
+     * @param authorization Bearer 认证头
+     * @param tenantUid 租户唯一编码
+     * @param deptUid 部门唯一编码
+     * @param teamUid 团队唯一编码
+     * @return 允许读取数据时返回 true
+     */
+    public boolean hasDataAccess(
+            String authorization,
+            String tenantUid,
+            String deptUid,
+            String teamUid
+    ) {
+        String phone = resolveAuthenticatedPhone(authorization);
+        User user = userMapper.findByPhone(phone);
+        if (user == null || isRoleExpired(user)) {
+            throw new IllegalArgumentException(INVALID_TOKEN_MESSAGE);
+        }
+        if (isBlank(tenantUid) || isBlank(deptUid) || isBlank(teamUid)) {
+            return false;
+        }
+        return organizationMapper.countDataAccess(phone, tenantUid, deptUid, teamUid) > 0;
+    }
+
+    /**
+     * 判断组织范围字段是否缺失。
+     *
+     * @param value 待检查的字段
+     * @return 字段为 null 或空白时返回 true
+     */
+    private boolean isBlank(String value) {
+        return value == null || value.isBlank();
+    }
+
+    /**
      * 判断用户角色授权是否已经失效。
      *
      * @param user 当前登录用户
@@ -107,7 +143,8 @@ public class OrganizationAccessService {
             OrganizationTreeNode tenant = getOrCreateNode(
                     tenants,
                     membership.getTenantName(),
-                    membership.getTenantUid()
+                    membership.getTenantUid(),
+                    membership.isDataAccessEnabled()
             );
             if (membership.getDeptUid() == null) {
                 continue;
@@ -115,13 +152,15 @@ public class OrganizationAccessService {
             OrganizationTreeNode department = getOrCreateNode(
                     tenant.getChildren(),
                     membership.getDeptName(),
-                    membership.getDeptUid()
+                    membership.getDeptUid(),
+                    membership.isDataAccessEnabled()
             );
             if (membership.getTeamUid() != null) {
                 getOrCreateNode(
                         department.getChildren(),
                         membership.getTeamName(),
-                        membership.getTeamUid()
+                        membership.getTeamUid(),
+                        membership.isDataAccessEnabled()
                 );
             }
         }
@@ -134,19 +173,22 @@ public class OrganizationAccessService {
      * @param nodes 同一层级的节点列表
      * @param label 组织显示名称
      * @param value 组织唯一编码
+     * @param dataAccess 节点是否具有业务数据访问权
      * @return 已存在或新创建的节点
      */
     private OrganizationTreeNode getOrCreateNode(
             List<OrganizationTreeNode> nodes,
             String label,
-            String value
+            String value,
+            boolean dataAccess
     ) {
         for (OrganizationTreeNode node : nodes) {
             if (node.getValue().equals(value)) {
+                node.mergeDataAccess(dataAccess);
                 return node;
             }
         }
-        OrganizationTreeNode node = new OrganizationTreeNode(label, value);
+        OrganizationTreeNode node = new OrganizationTreeNode(label, value, dataAccess);
         nodes.add(node);
         return node;
     }

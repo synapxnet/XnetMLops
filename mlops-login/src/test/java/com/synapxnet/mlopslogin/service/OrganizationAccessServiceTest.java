@@ -15,7 +15,9 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -63,6 +65,34 @@ class OrganizationAccessServiceTest {
         assertEquals("TEAM-GOAI-INFRA", result.get(0).getChildren().get(0).getChildren().get(0).getValue());
     }
 
+    /** 验证只有显式开启数据访问的团队才能通过业务网关校验。 */
+    @Test
+    void allowsOnlyDataEnabledMembership() {
+        User user = new User();
+        user.setRoles_failure_time(LocalDateTime.now().plusDays(1));
+        when(jwtUtil.extractUsername("valid-token")).thenReturn("17870171303");
+        when(userMapper.findByPhone("17870171303")).thenReturn(user);
+        when(organizationMapper.countDataAccess(
+                "17870171303",
+                "TEN-SYNAPXNET",
+                "DEPT-SYNAPXNET-PLATFORM",
+                "TEAM-GOAI-INFRA"
+        )).thenReturn(1);
+
+        assertTrue(service.hasDataAccess(
+                "Bearer valid-token",
+                "TEN-SYNAPXNET",
+                "DEPT-SYNAPXNET-PLATFORM",
+                "TEAM-GOAI-INFRA"
+        ));
+        assertFalse(service.hasDataAccess(
+                "Bearer valid-token",
+                "TEN-SYNAPXNET",
+                "DEPT-SYNAPXNET-PLATFORM",
+                "TEAM-SCENARIO-MIGRATION"
+        ));
+    }
+
     /** 验证缺少认证头时不会返回任何组织数据。 */
     @Test
     void rejectsMissingBearerToken() {
@@ -102,6 +132,7 @@ class OrganizationAccessServiceTest {
         membership.setDeptName(deptName);
         membership.setTeamUid(teamUid);
         membership.setTeamName(teamName);
+        membership.setDataAccessEnabled(true);
         return membership;
     }
 }

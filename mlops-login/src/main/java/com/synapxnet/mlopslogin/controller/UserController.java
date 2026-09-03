@@ -22,7 +22,7 @@ class UserControllerService {
 @RestController
 @RequestMapping("/api")
 public class UserController {
-    private static final String DEMO_PHONE = "17870171303";
+    private static final Set<String> DEMO_PHONES = Set.of("17870171303", "15870171303");
     private static final String DEMO_VERIFICATION_CODE = "000000";
 
     @Resource
@@ -45,7 +45,7 @@ public class UserController {
             String userPhone = request.getUserPhone();
             String code = request.getCode();
 
-            if (!DEMO_PHONE.equals(userPhone) || !DEMO_VERIFICATION_CODE.equals(code)) {
+            if (!DEMO_PHONES.contains(userPhone) || !DEMO_VERIFICATION_CODE.equals(code)) {
                 return ResponseEntity.status(401).body(Map.of(
                         "code", 401,
                         "message", "手机号或验证码错误"
@@ -234,10 +234,10 @@ public class UserController {
     @PostMapping("/sms-code")
     public ResponseEntity<?> sendCode(@RequestBody LoginRequest request) {
         String userPhone = request.getUserPhone();
-        if (!DEMO_PHONE.equals(userPhone)) {
+        if (!DEMO_PHONES.contains(userPhone)) {
             return ResponseEntity.badRequest().body(Map.of(
                     "code", 400,
-                    "message", "展示版仅支持固定手机号"
+                    "message", "展示版仅支持已配置账号"
             ));
         }
 

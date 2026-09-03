@@ -53,4 +53,35 @@ public class OrganizationController {
             ));
         }
     }
+
+    /**
+     * 为 Nginx 子请求校验当前用户是否可以读取指定团队数据。
+     *
+     * @param authorization Bearer 认证头
+     * @param tenantUid 租户唯一编码
+     * @param deptUid 部门唯一编码
+     * @param teamUid 团队唯一编码
+     * @return 允许时返回 204，无数据权时返回 403
+     */
+    @GetMapping("/organization-access")
+    public ResponseEntity<Void> checkOrganizationAccess(
+            @RequestHeader(value = "Authorization", required = false) String authorization,
+            @RequestHeader(value = "X-Tenant-Uid", required = false) String tenantUid,
+            @RequestHeader(value = "X-Dept-Uid", required = false) String deptUid,
+            @RequestHeader(value = "X-Team-Uid", required = false) String teamUid
+    ) {
+        try {
+            boolean allowed = organizationAccessService.hasDataAccess(
+                    authorization,
+                    tenantUid,
+                    deptUid,
+                    teamUid
+            );
+            return allowed
+                    ? ResponseEntity.noContent().build()
+                    : ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        } catch (IllegalArgumentException exception) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+    }
 }

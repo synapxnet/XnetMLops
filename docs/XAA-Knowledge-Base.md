@@ -626,7 +626,7 @@ Xnet智能体(XAA)
 
 XAA 使用独立的 `xaaRequestClient`：
 - 开发环境: `/xaa`（Vite 代理）
-- 生产环境: `http://127.0.0.1:8186/api`
+- 生产环境: `http://192.168.1.156:8186/api`
 - 双解包模式: `defaultResponseInterceptor({dataField:'data'})` + `responseReturn:'data'`
 - 防御性写法: `Array.isArray(res) ? res : (res as any).data || []`
 
@@ -985,7 +985,7 @@ spring:
   application:
     name: mlops-xaa-service
   datasource:
-    url: jdbc:mysql://127.0.0.1:3306/XnetMLops?useSSL=false&serverTimezone=Asia/Shanghai
+    url: jdbc:mysql://192.168.1.5:3306/XnetMLops?useSSL=false&serverTimezone=Asia/Shanghai
     username: root
     password: "${DB_PASSWORD}"
 
@@ -1000,7 +1000,7 @@ xaa:
   services:
     dpp-url: http://localhost:8081
     mtp-url: http://localhost:8082
-    mep-url: http://127.0.0.1:8184
+    mep-url: http://192.168.1.156:8184
 ```
 
 ### 14.2 枚举类
