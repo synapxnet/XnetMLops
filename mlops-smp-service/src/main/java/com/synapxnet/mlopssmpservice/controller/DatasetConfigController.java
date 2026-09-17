@@ -21,6 +21,23 @@ public class DatasetConfigController {
     @Resource
     private DatasetConfigMapper datasetConfigMapper;
 
+    /** 编辑已有配置标签并返回真实写入结果。Edit an existing label and report the actual persistence result. */
+    @PutMapping("/dataset-config/{type}/{value}")
+    public ResponseEntity<Map<String, Object>> updateDatasetConfig(@PathVariable String type, @PathVariable String value, @RequestBody ConfigItem item) {
+        if ((!"datasetTypes".equals(type) && !"datasetZones".equals(type)) || item.getLabel() == null || item.getLabel().isBlank()) {
+            return ResponseEntity.badRequest().body(Map.of("code", 400, "message", "配置类型或名称无效"));
+        }
+        String configType = "datasetTypes".equals(type) ? "DATASET_TYPE" : "DATASET_ZONE";
+        String label = item.getLabel().trim();
+        if (datasetConfigMapper.countOtherLabels(label, value, configType) > 0) {
+            return ResponseEntity.status(409).body(Map.of("code", 409, "message", "配置名称已存在"));
+        }
+        if (datasetConfigMapper.updateDatasetConfigLabel(label, value, configType) == 0) {
+            return ResponseEntity.status(404).body(Map.of("code", 404, "message", "配置项不存在"));
+        }
+        return ResponseEntity.ok(Map.of("code", 0, "message", "配置已更新", "data", Map.of("label", label, "value", value)));
+    }
+
     //获取数据集配置
     @GetMapping("/dataset-config")
     public ResponseEntity<Map<String, Object>> getDatasetConfig() {

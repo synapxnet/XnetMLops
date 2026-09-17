@@ -28,14 +28,17 @@ public class MTPModelService {
      * 获取MTP训练平台的输出模型列表
      * 从MTP服务获取已完成训练的任务，提取其输出模型信息
      */
-    public List<Map<String, Object>> getOutputModels() {
+    public List<Map<String, Object>> getOutputModels(String tenantUid) {
+        if (tenantUid == null || tenantUid.isBlank()) {
+            throw new IllegalArgumentException("X-Tenant-Uid 不能为空");
+        }
         try {
             WebClient client = webClientBuilder.baseUrl(mtpServiceUrl).build();
 
             // 调用MTP服务获取训练任务列表
             Map<String, Object> response = client.get()
                     .uri("/api/mtp/tasks")
-                    .header("X-Tenant-Uid", "default")
+                    .header("X-Tenant-Uid", tenantUid.trim())
                     .retrieve()
                     .bodyToMono(new ParameterizedTypeReference<Map<String, Object>>() {})
                     .block();

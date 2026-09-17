@@ -11,6 +11,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.UUID;
 
 @Service
@@ -154,34 +156,53 @@ public class WorkflowService {
     }
 
     /**
-     * 保存工作流图（节点和边）
+     * 校验图后保存，并将画布UID映射到新数据库外键。
+     * Validate the graph and map canvas UIDs to newly generated database foreign keys.
      */
     @Transactional
     public void saveWorkflowGraph(Long workflowId, List<WorkflowNode> nodes, List<WorkflowEdge> edges) {
-        // 删除旧的节点和边
+        getWorkflowById(workflowId);
+        List<WorkflowNode> graphNodes = nodes == null ? List.of() : nodes;
+        List<WorkflowEdge> graphEdges = edges == null ? List.of() : edges;
+        Map<String, WorkflowNode> nodesByUid = new LinkedHashMap<>();
+        Map<Long, String> legacyIds = new LinkedHashMap<>();
+        for (WorkflowNode node : graphNodes) {
+            if (node == null) throw new IllegalArgumentException("工作流节点不能为空");
+            if (node.getUid() == null || node.getUid().isBlank()) node.setUid(UUID.randomUUID().toString());
+            if (nodesByUid.putIfAbsent(node.getUid(), node) != null) throw new IllegalArgumentException("工作流节点UID重复");
+            if (node.getId() != null && legacyIds.putIfAbsent(node.getId(), node.getUid()) != null) throw new IllegalArgumentException("工作流节点ID重复");
+        }
+        // 在删除旧图前验证端点，防止无效请求破坏持久化图。Validate endpoints before deleting the old graph.
+        for (WorkflowEdge edge : graphEdges) {
+            if (edge == null) throw new IllegalArgumentException("工作流连线不能为空");
+            String source = edge.getSourceNodeUid() != null ? edge.getSourceNodeUid() : legacyIds.get(edge.getSourceNodeId());
+            String target = edge.getTargetNodeUid() != null ? edge.getTargetNodeUid() : legacyIds.get(edge.getTargetNodeId());
+            if (!nodesByUid.containsKey(source) || !nodesByUid.containsKey(target)) throw new IllegalArgumentException("工作流连线引用了不存在的节点");
+            edge.setSourceNodeUid(source);
+            edge.setTargetNodeUid(target);
+        }
         edgeMapper.deleteByWorkflowId(workflowId);
         nodeMapper.deleteByWorkflowId(workflowId);
 
-        // 插入新的节点
-        if (nodes != null && !nodes.isEmpty()) {
-            for (WorkflowNode node : nodes) {
-                node.setWorkflowId(workflowId);
-                if (node.getUid() == null) {
-                    node.setUid(UUID.randomUUID().toString());
-                }
-            }
-            nodeMapper.batchInsert(nodes);
+        // 使用已有单条INSERT取回真实主键。Use the existing insert mapper to retrieve generated IDs.
+        for (WorkflowNode node : graphNodes) {
+            node.setId(null);
+            node.setWorkflowId(workflowId);
+            nodeMapper.insert(node);
+            if (node.getId() == null) throw new IllegalStateException("节点主键未返回，工作流保存已回滚");
         }
 
-        // 插入新的边
-        if (edges != null && !edges.isEmpty()) {
-            for (WorkflowEdge edge : edges) {
+        if (!graphEdges.isEmpty()) {
+            for (WorkflowEdge edge : graphEdges) {
+                edge.setId(null);
                 edge.setWorkflowId(workflowId);
-                if (edge.getUid() == null) {
+                edge.setSourceNodeId(nodesByUid.get(edge.getSourceNodeUid()).getId());
+                edge.setTargetNodeId(nodesByUid.get(edge.getTargetNodeUid()).getId());
+                if (edge.getUid() == null || edge.getUid().isBlank()) {
                     edge.setUid(UUID.randomUUID().toString());
                 }
             }
-            edgeMapper.batchInsert(edges);
+            edgeMapper.batchInsert(graphEdges);
         }
     }
 }

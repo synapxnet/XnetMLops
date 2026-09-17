@@ -1,0 +1,6 @@
+# Copyright (C) 2026 Synapxnet. All rights reserved.
+# Synapxnet Proprietary and Confidential; unauthorized distribution is forbidden.
+# 自动发现治理鉴权配置 / Discover governed authentication configuration.
+# Author: maoyo | Department: 研发部 | Date: 2026-09-17 | Version: 1.3.0
+# Security Level: INTERNAL | Maintainer: maoyo | Email: synapxnet@gmail.com
+com.synapxnet.goai.contract.AgentContractAutoConfiguration

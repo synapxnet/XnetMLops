@@ -9,7 +9,7 @@ RUN apt-get update \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
-COPY target/mlops-mtp-service-1.0.0-SNAPSHOT.jar app.jar
+COPY target/mlops-mtp-service-1.3.0.jar app.jar
 COPY recommendation-training /opt/xnetmlops/recommendation-training
 EXPOSE 8183
 ENV TZ=Asia/Shanghai

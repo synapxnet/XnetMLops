@@ -40,3 +40,22 @@ logging:
   level:
     com.synapxnet.mlopsmepservice: DEBUG
     org.springframework.web: INFO
+
+# 委派与审批配置，缺少密钥时拒绝执行。 / Delegation and approval fail closed without credentials.
+openxnet:
+  agent:
+    delegation-secret: ${OPENXNET_AGENT_DELEGATION_SECRET:}
+    audience: ${OPENXNET_AGENT_AUDIENCE:openxnet-agent-adapter}
+  approval:
+    base-url: ${OPENXNET_APPROVAL_BASE_URL:http://127.0.0.1:3456}
+    service-token: ${OPENXNET_APPROVAL_SERVICE_TOKEN:}
+
+# 未配置运行时只连接本机不可用端点，不能伪造运行结果。 / Unconfigured runtimes cannot fabricate execution results.
+xnet:
+  recommendation:
+    runtime-url: ${RECOMMENDATION_RUNTIME_URL:http://127.0.0.1:19081}
+    expected-algorithm-id: ${RECOMMENDATION_EXPECTED_ALGORITHM_ID:unconfigured}
+    expected-product-version: ${RECOMMENDATION_EXPECTED_PRODUCT_VERSION:unconfigured}
+  quantitative:
+    runtime-url: ${QUANTITATIVE_RUNTIME_URL:http://127.0.0.1:19082}
+    runtime-token: ${QUANTITATIVE_RUNTIME_TOKEN:}

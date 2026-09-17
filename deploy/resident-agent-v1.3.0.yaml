@@ -1,0 +1,20 @@
+# Copyright (C) 2026 Synapxnet. All rights reserved.
+# Synapxnet Proprietary and Confidential. INTERNAL.
+# Author: maoyo | Department: 研发部 | Date: 2026-09-15 | Version: 1.3.0
+apiVersion: openxnet.synapxnet.com/v1
+kind: ResidentAgentDeployment
+metadata:
+  name: mlops-resident-v130
+spec:
+  agentId: agt-mlops-resident-v130
+  platform: mlops
+  contractVersion: finals-v1.3.0
+  controlPlaneRef: ${OPENXNET_CONTROL_PLANE_URL}
+  agentTeamsRef: ${OPENXNET_AGENTTEAMS_URL}
+  credentialRef: credential://resident/mlops/v130
+  allowedTools:
+    - mlops.deployment.get
+    - mlops.attribution.report.get
+    - mlops.inference.probe
+    - mlops.release.validation.get
+  writeAccess: false

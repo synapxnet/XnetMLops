@@ -676,3 +676,7 @@ INSERT INTO `xnet_mlops_mep_deploy_node` (`uid`, `name`, `ip_address`, `port`, `
                                                                                                                                                                                                             ('node-002', 'CPU节点-01', '192.168.10.102', 22, 'online', 16, 32, NULL, '24.0.7', 'running', '["cpu", "production"]', '生产环境CPU计算节点', 'admin'),
                                                                                                                                                                                                             ('node-003', '测试节点-01', '192.168.10.103', 22, 'offline', 8, 16, NULL, '23.0.6', 'stopped', '["test"]', '测试环境节点', 'admin');
 
+
+-- MLOps模型制品登记表（V1.3.0）
+CREATE TABLE IF NOT EXISTS XnetMLops.xnet_mlops_mtp_model_artifact (
+ id BIGINT PRIMARY KEY AUTO_INCREMENT, uid VARCHAR(36) NOT NULL UNIQUE, output_name VARCHAR(255) NOT NULL, framework VARCHAR(64) NOT NULL, domain_name VARCHAR(128) NOT NULL, team_uid VARCHAR(36) NOT NULL, team_name VARCHAR(255), tenant_uid VARCHAR(36) NOT NULL, dept_uid VARCHAR(36), user_id VARCHAR(64) NOT NULL, description VARCHAR(500), artifact_path VARCHAR(512), created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP, updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP, UNIQUE KEY uk_model_artifact_tenant_name (tenant_uid, output_name), KEY idx_model_artifact_tenant (tenant_uid) );

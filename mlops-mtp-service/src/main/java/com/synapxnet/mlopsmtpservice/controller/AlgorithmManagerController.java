@@ -4,11 +4,12 @@ import com.synapxnet.mlopsmtpservice.entity.Algorithm;
 import com.synapxnet.mlopsmtpservice.entity.HdfsFile;
 import com.synapxnet.mlopsmtpservice.service.AlgorithmService;
 import com.synapxnet.mlopsmtpservice.Utils.HadoopUtil;
+import com.synapxnet.mlops.storage.HdfsFileDownload;
 import org.apache.hadoop.fs.*;
-import org.apache.hadoop.io.IOUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.InputStreamResource;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -17,8 +18,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
+import java.io.FileNotFoundException;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -33,6 +33,12 @@ public class AlgorithmManagerController {
 
     private final AlgorithmService algorithmService;
     private final HadoopUtil hadoopUtil;
+
+    @Value("${hdfs.path}")
+    private String downloadHdfsPath;
+
+    @Value("${hdfs.user}")
+    private String downloadHdfsUser;
 
     @Autowired
     public AlgorithmManagerController(AlgorithmService algorithmService, HadoopUtil hadoopUtil) {
@@ -156,6 +162,7 @@ public class AlgorithmManagerController {
         }
     }
 
+    /** 首块验证后流式写出算法，响应关闭时释放独立连接。 / Stream the preflighted algorithm and release its isolated connection when the response closes. */
     @GetMapping("/download")
     public ResponseEntity<InputStreamResource> downloadFile(
             @PathVariable("algorithmId") Long algorithmId,
@@ -163,28 +170,11 @@ public class AlgorithmManagerController {
         try {
             String algorithmRootPath = buildAlgorithmRootPath(algorithmId);
 
-            // 如果传入的路径已经包含算法根路径，则直接使用
-            String fullPath;
-            if (filePath.startsWith(algorithmRootPath)) {
-                fullPath = filePath;
-            } else if (filePath.startsWith("/")) {
-                fullPath = algorithmRootPath + filePath;
-            } else {
-                fullPath = algorithmRootPath + "/" + filePath;
-            }
-
-            logger.info("下载文件: 传入路径={}, 完整路径={}", filePath, fullPath);
-
-            ByteArrayOutputStream outputStream = downloadFileFromHdfs(fullPath);
-            byte[] data = outputStream.toByteArray();
-            InputStreamResource resource = new InputStreamResource(new ByteArrayInputStream(data));
-
-            String fileName = fullPath.substring(fullPath.lastIndexOf('/') + 1);
-
-            return ResponseEntity.ok()
-                    .contentType(MediaType.APPLICATION_OCTET_STREAM)
-                    .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + fileName + "\"")
-                    .body(resource);
+            return HdfsFileDownload.open(algorithmRootPath, filePath, downloadHdfsPath, downloadHdfsUser).response();
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(null);
+        } catch (FileNotFoundException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(null);
         } catch (RuntimeException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(null);
         } catch (Exception e) {
@@ -350,15 +340,6 @@ public class AlgorithmManagerController {
 
             logger.info("文件已上传到HDFS: {}", hdfsPath);
         }
-    }
-
-    private ByteArrayOutputStream downloadFileFromHdfs(String filePath) throws Exception {
-        ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
-        try (FileSystem fs = hadoopUtil.getFileSystem();
-             FSDataInputStream inputStream = fs.open(new Path(filePath))) {
-            IOUtils.copyBytes(inputStream, outputStream, 4096, false);
-        }
-        return outputStream;
     }
 
     private void deleteFromHdfs(String path) throws Exception {
