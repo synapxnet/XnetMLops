@@ -11,7 +11,7 @@
 [![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.4.6-6db33f.svg)](https://spring.io/projects/spring-boot)
 [![License](https://img.shields.io/badge/license-MIT-2ea44f.svg)](./LICENSE)
 
-[Live Demo](https://www.xnetmlops.synapxnet.cn) · [Frontend: XnetMLops-web](https://github.com/synapxnet/XnetMLops-web) · [OpenXnet](https://openxnet.synapxnet.com) · [License](./LICENSE)
+[Live Demo](https://goai.xnetmlops.synapxnet.online) · [Frontend: XnetMLops-web](https://github.com/synapxnet/XnetMLops-web/tree/v1.3.0) · [OpenXnet](https://openxnet.synapxnet.com) · [License](./LICENSE)
 
 </div>
 
@@ -19,7 +19,7 @@
 
 This default `display` branch retains the earlier showcase code. The **GOAI v1.3.0 release** and current finals source are available through the links below; this documentation update does not upgrade this branch's application code.
 
-**[Release notes](https://github.com/synapxnet/XnetMLops/releases/tag/v1.3.0) · [Download source ZIP](https://github.com/synapxnet/XnetMLops/releases/download/v1.3.0/XnetMLops-v1.3.0-c9cae060-source.zip) · [GOAI source branch](https://github.com/synapxnet/XnetMLops/tree/GOAI-Competition) · [Build and delivery guide](https://github.com/synapxnet/XnetMLops/blob/c9cae0607fc6fba6b76b26d9da4ca1ace0ab13bc/docs/GOAI-FINALS-V1.3.0-SOURCE-DELIVERY.md)**
+**[Release notes](https://github.com/synapxnet/XnetMLops/releases/tag/v1.3.0) · [Download source ZIP](https://github.com/synapxnet/XnetMLops/releases/download/v1.3.0/XnetMLops-v1.3.0-c9cae060-source.zip) · [Pinned v1.3.0 source](https://github.com/synapxnet/XnetMLops/tree/v1.3.0) · [Build and delivery guide](https://github.com/synapxnet/XnetMLops/blob/c9cae0607fc6fba6b76b26d9da4ca1ace0ab13bc/docs/GOAI-FINALS-V1.3.0-SOURCE-DELIVERY.md)**
 
 [Matching frontend v1.3.0](https://github.com/synapxnet/XnetMLops-web/releases/tag/v1.3.0) · [OpenXnet v1.3.0](https://github.com/synapxnet/OpenXnet/releases/tag/v1.3.0)
 
@@ -51,7 +51,7 @@ Validation: all 8 Maven Reactor projects packaged and 118 isolated unit tests pa
 
 XnetMLops is an open-source, full-lifecycle MLOps platform maintained by the **SynapXnet team**. It connects data preparation, model training, deployment, infrastructure resources, RAG, and agent orchestration into one engineering loop.
 
-This backend repository and [XnetMLops-web](https://github.com/synapxnet/XnetMLops-web) form an enterprise-grade, multi-tenant, frontend/backend-separated system. DPP, MTP, MEP, SMP, and XAA are delivered as focused microservices.
+This backend repository and [XnetMLops-web](https://github.com/synapxnet/XnetMLops-web/tree/v1.3.0) form an enterprise-grade, multi-tenant, frontend/backend-separated system. DPP, MTP, MEP, SMP, and XAA are delivered as focused microservices.
 
 ## Highlights
 
@@ -72,26 +72,39 @@ This backend repository and [XnetMLops-web](https://github.com/synapxnet/XnetMLo
 | XAA | `mlops-xaa-service` | Assistants, conversations, visual workflows, skills, and cross-module orchestration |
 | Login | `mlops-login` | Authentication and the unified platform entry |
 
-## Quick Start
+## Quick start (v1.3.0)
+
+The verified backend uses JDK **17**, Spring Boot **3.4.6** and Maven **3.9+**. Runtime dependencies include MySQL 8.x, Redis and the HDFS/Jenkins/model runtimes used by enabled modules. Compose does not supply a complete initialized database or training cluster.
 
 ```bash
-mvn -DskipTests package
-cp .env.example .env
-docker compose up -d --build
-docker compose ps
+git clone --branch v1.3.0 --single-branch https://github.com/synapxnet/XnetMLops.git
+cd XnetMLops
+mvn -B -ntp -DskipTests package
 ```
 
-Requirements: JDK 17+, Maven 3.9+, Docker Compose, MySQL 8.x, Redis 7.x, plus external systems required by enabled modules.
+Build the matching `XnetMLops-web` v1.3.0 first. Copy `.env.example` to a protected local `.env` and configure database/Redis, HDFS, JWT, delegation and approval service settings. Set `WEB_DIST_PATH` to `../XnetMLops-web/apps/web-antd/dist`. Review the base SQL and migrations in the delivery guide; do not run a destructive database initialization against an existing environment. Migration SQL still requires an isolated MySQL rehearsal.
 
-Showcase data is maintained in `demo/showcase_data.sql`.
+The checked-in `nginx/default.conf` routes `/api/login/`, `/api/dpp/` and other `/api/<service>/` prefixes, while the published web app uses the prefixes listed below. **Align the gateway and frontend configuration before starting containers**; preserve controller path prefixes, organization authorization and resident/governed-tool routes. The generic Compose/Nginx templates are not the current live deployment configuration. After completing these prerequisites, validate with `docker compose config --quiet`, then use `docker compose up -d --build`. Backend ports below are service ports, not public website addresses.
 
-## Demo
+## Demo access and API routes
 
-- URL: <https://www.xnetmlops.synapxnet.cn>
-- Phone: `12345678900`
-- Verification code: `000000`
+- GOAI demo: <https://goai.xnetmlops.synapxnet.online/#/auth/login>.
+- Public demo account: **`17870171303`**; verification code: **`000000`** (demo environment only, publication authorized by the project owner). Login uses an **11-digit mobile number and a 6-digit verification code** through `POST /api/auth/login`; it is not a password login or the OpenXnet AgentTeams access-code field.
+- On 2026-09-18, the site returned HTTP 200 with title `XnetMLops`. An authenticated read of `/api/resident/v1/status` returned `platform=mlops` and `agentId=agt-mlops-resident-v130`; the same read without login returned 401. This verifies platform identity and access control, not a new full business-flow acceptance.
 
-The fixed code is only for the public showcase. Production must use secure authentication.
+All web API routes use the same origin as the demo:
+
+| Service | Frontend API base | Backend service port |
+| --- | --- | --- |
+| Auth | `/api` | `8181` |
+| DPP | `/dpp` | `8182` |
+| MTP | `/mtp` | `8183` |
+| MEP | `/mep` | `8184` |
+| SMP | `/smp` | `8185` |
+| XAA | `/xaa` | `8186` |
+
+
+The resident API base is `/api/resident/v1`. Platform login, resident model-provider keys and OpenXnet AgentTeams demo access codes are different credentials. Subsequent feature calls remain subject to tenant/team permissions and execution approval.
 
 ## Community and License
 
