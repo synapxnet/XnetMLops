@@ -6,7 +6,7 @@
 
 **Open-source MLOps connecting data, training, deployment, resources, and agents**
 
-[![Version](https://img.shields.io/badge/version-1.0.0-1677ff.svg)](https://www.xnetmlops.synapxnet.cn)
+[![GOAI release](https://img.shields.io/badge/GOAI_release-1.3.0-1677ff.svg)](https://github.com/synapxnet/XnetMLops/releases/tag/v1.3.0)
 [![Java](https://img.shields.io/badge/Java-17-e76f00.svg)](https://www.oracle.com/java/)
 [![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.4.6-6db33f.svg)](https://spring.io/projects/spring-boot)
 [![License](https://img.shields.io/badge/license-MIT-2ea44f.svg)](./LICENSE)
@@ -14,6 +14,22 @@
 [Live Demo](https://www.xnetmlops.synapxnet.cn) · [Frontend: XnetMLops-web](https://github.com/synapxnet/XnetMLops-web) · [OpenXnet](https://openxnet.synapxnet.com) · [License](./LICENSE)
 
 </div>
+
+## GOAI v1.3.0 — release and downloads
+
+This default `display` branch retains the earlier showcase code. The **GOAI v1.3.0 release** and current finals source are available through the links below; this documentation update does not upgrade this branch's application code.
+
+**[Release notes](https://github.com/synapxnet/XnetMLops/releases/tag/v1.3.0) · [Download source ZIP](https://github.com/synapxnet/XnetMLops/releases/download/v1.3.0/XnetMLops-v1.3.0-c9cae060-source.zip) · [GOAI source branch](https://github.com/synapxnet/XnetMLops/tree/GOAI-Competition) · [Build and delivery guide](https://github.com/synapxnet/XnetMLops/blob/c9cae0607fc6fba6b76b26d9da4ca1ace0ab13bc/docs/GOAI-FINALS-V1.3.0-SOURCE-DELIVERY.md)**
+
+[Matching frontend v1.3.0](https://github.com/synapxnet/XnetMLops-web/releases/tag/v1.3.0) · [OpenXnet v1.3.0](https://github.com/synapxnet/OpenXnet/releases/tag/v1.3.0)
+
+The GOAI release provides model evidence/artifact reads, Skill candidate queries, workflow contracts and bounded-memory HDFS downloads. MEP governed execution checks delegated identity, approval digests, resource versions and idempotency; actions without a configured executor fail explicitly.
+
+The [resident Agent runtime](https://github.com/synapxnet/OpenXnet/tree/c841ef841da8477fc312e27cd390aecac8ed2d7e/services/platform-resident-agent) runs as a separate platform service and cooperates with OpenXnet AgentTeams; it requires platform identity, model configuration and delegated permissions. The built-in assistant alone is not proof of a configured resident runtime.
+
+Validation: all 8 Maven Reactor projects packaged and 118 isolated unit tests passed. External Application/Integration tests were excluded; migration SQL has not been rehearsed against isolated MySQL. Publishing this version does not redeploy online services or certify production readiness. See the delivery guide for configuration and limitations.
+
+> **Historical UI screenshots below:** these showcase images are retained for context. They are not the current v1.3.0 UI acceptance evidence or a record of live governance execution.
 
 ![XnetMLops analytics center](./docs/images/xnetmlops-analytics-2026.png)
 

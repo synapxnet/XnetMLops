@@ -6,7 +6,7 @@
 
 **データ、学習、配備、リソース、エージェントを結ぶオープンソース MLOps**
 
-[![Version](https://img.shields.io/badge/version-1.0.0-1677ff.svg)](https://www.xnetmlops.synapxnet.cn)
+[![GOAI release](https://img.shields.io/badge/GOAI_release-1.3.0-1677ff.svg)](https://github.com/synapxnet/XnetMLops/releases/tag/v1.3.0)
 [![Java](https://img.shields.io/badge/Java-17-e76f00.svg)](https://www.oracle.com/java/)
 [![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.4.6-6db33f.svg)](https://spring.io/projects/spring-boot)
 [![License](https://img.shields.io/badge/license-MIT-2ea44f.svg)](./LICENSE)
@@ -14,6 +14,22 @@
 [オンラインデモ](https://www.xnetmlops.synapxnet.cn) · [フロントエンド: XnetMLops-web](https://github.com/synapxnet/XnetMLops-web) · [OpenXnet](https://openxnet.synapxnet.com) · [ライセンス](./LICENSE)
 
 </div>
+
+## GOAI v1.3.0 — リリースとダウンロード
+
+既定の `display` ブランチは従来の展示用コードを保持しています。**GOAI v1.3.0 リリース**と決勝用ソースは以下から参照できます。この README 更新で本ブランチのアプリケーションコードは更新されません。
+
+**[リリース説明](https://github.com/synapxnet/XnetMLops/releases/tag/v1.3.0) · [ソース ZIP](https://github.com/synapxnet/XnetMLops/releases/download/v1.3.0/XnetMLops-v1.3.0-c9cae060-source.zip) · [GOAI ソース](https://github.com/synapxnet/XnetMLops/tree/GOAI-Competition) · [ビルド・交付ガイド](https://github.com/synapxnet/XnetMLops/blob/c9cae0607fc6fba6b76b26d9da4ca1ace0ab13bc/docs/GOAI-FINALS-V1.3.0-SOURCE-DELIVERY.md)**
+
+[対応するフロントエンド v1.3.0](https://github.com/synapxnet/XnetMLops-web/releases/tag/v1.3.0) · [OpenXnet v1.3.0](https://github.com/synapxnet/OpenXnet/releases/tag/v1.3.0)
+
+GOAI 版はモデルの証拠・成果物の読み取り、Skill 候補照会、ワークフロー契約、メモリ使用を抑えた HDFS ダウンロードを提供します。MEP の制御付き実行は委任 ID、承認ダイジェスト、リソース版、冪等性を確認し、実行器未設定の操作を明示的に拒否します。
+
+[常駐 Agent ランタイム](https://github.com/synapxnet/OpenXnet/tree/c841ef841da8477fc312e27cd390aecac8ed2d7e/services/platform-resident-agent)は独立したプラットフォームサービスとして動作し、OpenXnet AgentTeams と協働します。プラットフォーム ID、モデル設定、委任権限の構成が必要です。既存アシスタントがあるだけで、常駐ランタイムの設定完了を意味しません。
+
+検証結果：Maven Reactor 8 件のパッケージ化と隔離単体テスト 118 件が成功しました。外部サービス依存の Application/Integration テストは対象外で、移行 SQL は隔離 MySQL で未試行です。 リリースの公開はオンラインサービスの再配備や本番認証を意味しません。構成と制限は交付ガイドをご確認ください。
+
+> **以下は過去の画面画像です。** 展示用の参考画像であり、v1.3.0 の最新 UI 受入証跡や実環境での制御実行記録ではありません。
 
 ![XnetMLops MLOps 分析センター](./docs/images/xnetmlops-analytics-2026.png)
 
