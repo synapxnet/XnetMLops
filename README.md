@@ -19,7 +19,7 @@
 
 当前默认 `display` 分支保留原展示代码。**GOAI v1.3.0 发布版**及决赛源码请通过下方入口获取；本次 README 更新不代表默认分支业务代码已升级。
 
-**[发布说明](https://github.com/synapxnet/XnetMLops/releases/tag/v1.3.0) · [下载源码 ZIP](https://github.com/synapxnet/XnetMLops/releases/download/v1.3.0/XnetMLops-v1.3.0-c9cae060-source.zip) · [v1.3.0 固定源码](https://github.com/synapxnet/XnetMLops/tree/v1.3.0) · [构建与交付文档](https://github.com/synapxnet/XnetMLops/blob/c9cae0607fc6fba6b76b26d9da4ca1ace0ab13bc/docs/GOAI-FINALS-V1.3.0-SOURCE-DELIVERY.md)**
+**[发布说明](https://github.com/synapxnet/XnetMLops/releases/tag/v1.3.0) · [下载源码 ZIP](https://github.com/synapxnet/XnetMLops/releases/download/v1.3.0/XnetMLops-v1.3.0-source.zip) · [v1.3.0 固定源码](https://github.com/synapxnet/XnetMLops/tree/v1.3.0) · [程序验证基线交付文档](https://github.com/synapxnet/XnetMLops/blob/c9cae0607fc6fba6b76b26d9da4ca1ace0ab13bc/docs/GOAI-FINALS-V1.3.0-SOURCE-DELIVERY.md)**
 
 [配套前端 v1.3.0](https://github.com/synapxnet/XnetMLops-web/releases/tag/v1.3.0) · [OpenXnet v1.3.0](https://github.com/synapxnet/OpenXnet/releases/tag/v1.3.0)
 
@@ -27,7 +27,9 @@ GOAI 版包含模型证据/制品读取、Skill 候选查询、工作流契约�
 
 [驻场 Agent 运行时](https://github.com/synapxnet/OpenXnet/tree/c841ef841da8477fc312e27cd390aecac8ed2d7e/services/platform-resident-agent)作为独立平台服务运行，与 OpenXnet AgentTeams 协同，需要配置平台身份、模型服务与委派权限；已有智能助手不代表驻场运行时已经配置完成。
 
-本次源码交付验证：8 个 Maven Reactor 打包成功，118 项隔离单测通过；外部服务 Application/Integration 测试未执行，迁移 SQL 尚未在隔离 MySQL 试跑。 发布版本不代表重新部署线上，也不等于生产认证；环境配置与限制以交付文档为准。
+程序基线验证：8 个 Maven Reactor 打包成功，118 项隔离单测通过；外部服务 Application/Integration 测试未执行，迁移 SQL 尚未在隔离 MySQL 试跑。 发布版本不代表重新部署线上，也不等于生产认证；环境配置与限制以交付文档为准。
+
+程序验证基线：[c9cae060](https://github.com/synapxnet/XnetMLops/commit/c9cae0607fc6fba6b76b26d9da4ca1ace0ab13bc)。GOAI 发行在此之后仅修订 README 文档；更新后的源码 ZIP 请按发布附件中的校验值核对。
 
 > **下方均为历史界面截图：** 保留作为展示参考，不代表 v1.3.0 最新 UI 验收结果，也不是实时治理执行证据。
 
