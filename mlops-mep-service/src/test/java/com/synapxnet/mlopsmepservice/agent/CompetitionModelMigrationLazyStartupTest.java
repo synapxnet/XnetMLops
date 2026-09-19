@@ -76,6 +76,31 @@ class CompetitionModelMigrationLazyStartupTest {
         assertEquals(input.sha256(), digest(Files.readAllBytes(input.file())));
     }
 
+    /** 已消费重启保留普通服务，旧状态不重放也不归零后开放。 / Consumed restart retains native service without replaying or reopening reset legacy state. */
+    @Test void consumedMigrationQuarantinesEveryLegacyGovernedEntry() throws Exception {
+        MigrationInput input = migrationInput();
+        try (var initial = start(input.file(), input.sha256())) { }
+        byte[] marker = Files.readAllBytes(temporary.resolve("migration.json.consumed"));
+        var service = MigrationOnlyConfiguration.createLifecycle();
+        new CompetitionModelStateMigration(service, new ObjectMapper(), input.file().toString(), input.sha256(), true);
+        var ctx = new AgentContract.RequestContext("ws", "new", "trace", "mlops.deployment.get", "id", "executor", "req");
+        assertEquals("STATE_UNAVAILABLE", assertThrows(com.synapxnet.goai.contract.AgentContractException.class, () -> service.deploymentEvidence(ctx, DEPLOYMENT)).getCode());
+        var body = new AgentContract.ToolRequest<>("req", "mlops.feature.fallback.apply", new CompetitionModelLifecycleService.FallbackApplyArguments(DEPLOYMENT, "feature_set_risk_fallback_v1", "UPSTREAM_SDK_CONTRACT_DRIFT"), "apr", "plan", "a".repeat(64), "step", DEPLOYMENT + "/feature-set", 18L, "42", "b".repeat(64), false, "test", "id", false);
+        assertEquals("STATE_UNAVAILABLE", assertThrows(com.synapxnet.goai.contract.AgentContractException.class, () -> service.applyFallback(body, ctx)).getCode());
+        assertTrue(((GovernedResourceVersionTracker) field(service, "versionTracker")).snapshot().liveVersions().isEmpty());
+        assertTrue(((Map<?,?>) field(service, "incidentStates")).isEmpty());
+        assertArrayEquals(marker, Files.readAllBytes(temporary.resolve("migration.json.consumed")));
+        assertEquals(input.sha256(), digest(Files.readAllBytes(input.file())));
+        assertThrows(IllegalStateException.class, () -> new CompetitionModelStateMigration(MigrationOnlyConfiguration.createLifecycle(), new ObjectMapper(), input.file().toString(), input.sha256()));
+    }
+
+    /** 真实模式仍严格拒绝消费标记篡改。 / Real mode still strictly rejects consumed-marker tampering. */
+    @Test void consumedMarkerTamperingRemainsStartupFatal() throws Exception {
+        MigrationInput input = migrationInput();
+        Files.writeString(temporary.resolve("migration.json.consumed"), "0".repeat(64) + "\n");
+        assertThrows(IllegalStateException.class, () -> new CompetitionModelStateMigration(MigrationOnlyConfiguration.createLifecycle(), new ObjectMapper(), input.file().toString(), input.sha256(), true));
+    }
+
     /** 仅启动迁移所需配置，不启动服务器、数据库或真实运行时客户端。 / Start only migration configuration without a server, database or real runtime clients. */
     private ConfigurableApplicationContext start(Path file, String sha256) {
         SpringApplication application = new SpringApplication(MigrationOnlyConfiguration.class);
@@ -145,6 +170,11 @@ class CompetitionModelMigrationLazyStartupTest {
     static class MigrationOnlyConfiguration {
         /** 提供迁移文档解析器。 / Provide the migration document parser. */
         @Bean ObjectMapper objectMapper() { return new ObjectMapper(); }
+
+        /** 创建无联网依赖的真实状态所有者。 / Construct the real state owner with network-free dependencies. */
+        static CompetitionModelLifecycleService createLifecycle() {
+            return new CompetitionModelLifecycleService(mock(GovernedApprovalVerifier.class), mock(QuantitativeRuntimeClient.class), mock(RecommendationRuntimeClient.class));
+        }
 
         /** 提供实际状态所有者，禁止触发外部审批或平台请求。 / Provide the actual state owner without external approval or platform requests. */
         @Bean CompetitionModelLifecycleService lifecycleService() {

@@ -33,10 +33,34 @@ import java.util.Map;
 @Component
 @Lazy(false)
 final class CompetitionModelStateMigration {
+    /** 保持旧构造器默认严格拒绝消费后的重启。 / Keep the legacy constructor strict after consumed migration. */
+    CompetitionModelStateMigration(CompetitionModelLifecycleService lifecycle, ObjectMapper mapper,
+            String migrationFile, String expectedSha256) {
+        this(lifecycle, mapper, migrationFile, expectedSha256, false);
+    }
+
     /** 仅从显式匹配摘要的旧部署导出恢复。 / Restore only from an explicit, digest-matched export of the verified old deployment. */
     CompetitionModelStateMigration(CompetitionModelLifecycleService lifecycle, ObjectMapper mapper,
+            String migrationFile, String expectedSha256, boolean realRuntimeEnabled) {
+        this(lifecycle, mapper, migrationFile, expectedSha256, realRuntimeEnabled, "", "", "");
+    }
+
+    /** 新持久检查点有独立来源和绑定，不重新消费历史迁移。 / New durable checkpoints have independent provenance and never reconsume historical migration. */
+    @org.springframework.beans.factory.annotation.Autowired
+    CompetitionModelStateMigration(CompetitionModelLifecycleService lifecycle, ObjectMapper mapper,
             @Value("${goai.resource-state-migration-file:}") String migrationFile,
-            @Value("${goai.resource-state-migration-sha256:}") String expectedSha256) {
+            @Value("${goai.resource-state-migration-sha256:}") String expectedSha256,
+            @Value("${OPENXNET_FEATURE_DRIFT_ENABLED:false}") boolean realRuntimeEnabled,
+            @Value("${goai.resource-state-checkpoint-directory:}") String checkpointDirectory,
+            @Value("${goai.resource-state-checkpoint-bootstrap-file:}") String checkpointBootstrapFile,
+            @Value("${goai.resource-state-checkpoint-bootstrap-sha256:}") String checkpointBootstrapSha256) {
+        if (!checkpointDirectory.isBlank() || !checkpointBootstrapFile.isBlank() || !checkpointBootstrapSha256.isBlank()) {
+            if (checkpointDirectory.isBlank() || checkpointBootstrapFile.isBlank()
+                    || !checkpointBootstrapSha256.matches("[a-f0-9]{64}"))
+                throw new IllegalStateException("MEP checkpoint configuration requires directory, bootstrap file and digest.");
+            lifecycle.initializeCheckpoint(Path.of(checkpointDirectory), Path.of(checkpointBootstrapFile), checkpointBootstrapSha256);
+            return;
+        }
         if ((migrationFile == null || migrationFile.isBlank()) && (expectedSha256 == null || expectedSha256.isBlank())) return;
         try {
             if (migrationFile == null || migrationFile.isBlank() || expectedSha256 == null || !expectedSha256.matches("[a-f0-9]{64}")) {
@@ -50,7 +74,6 @@ final class CompetitionModelStateMigration {
                 if (Files.isSymbolicLink(cursor)) throw new IllegalArgumentException("Migration path cannot contain links.");
             }
             Path consumed = source.resolveSibling(source.getFileName() + ".consumed");
-            if (Files.exists(consumed, LinkOption.NOFOLLOW_LINKS)) throw new IllegalStateException("A fresh export is required after migration consumption.");
             byte[] bytes = Files.readAllBytes(source);
             String actual = HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(bytes));
             if (!expectedSha256.equals(actual)) throw new IllegalArgumentException("Migration digest does not match.");
@@ -68,6 +91,14 @@ final class CompetitionModelStateMigration {
                 throw new IllegalArgumentException("Migration schema, platform or source artifact does not match.");
             }
             Instant.parse(root.path("exportedAt").asText());
+            if (Files.exists(consumed, LinkOption.NOFOLLOW_LINKS)) {
+                if (!realRuntimeEnabled || !Files.isRegularFile(consumed, LinkOption.NOFOLLOW_LINKS)
+                        || Files.size(consumed) > 66 || !actual.equals(Files.readString(consumed, StandardCharsets.UTF_8).trim())) {
+                    throw new IllegalStateException("Consumed migration cannot provide current governed state.");
+                }
+                lifecycle.quarantineUnavailableLegacyState();
+                return;
+            }
             lifecycle.restoreGovernedState(strict.treeToValue(root.path("tracker"), GovernedResourceVersionTracker.StateSnapshot.class),
                     strict.convertValue(root.path("domainState"), new TypeReference<Map<String, CompetitionModelLifecycleService.LifecycleSnapshot>>() { }),
                     strict.convertValue(root.path("domainBindings"), new TypeReference<Map<String, CompetitionModelLifecycleService.LifecycleBinding>>() { }));

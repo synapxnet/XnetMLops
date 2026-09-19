@@ -8,6 +8,7 @@
 package com.synapxnet.mlopsmepservice.agent;
 
 import com.synapxnet.goai.contract.AgentContract;
+import com.synapxnet.goai.contract.FeatureDriftRuntimeClient;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -20,6 +21,10 @@ import java.util.Map;
  */
 @RestController
 public class CompetitionModelLifecycleToolController {
+    // 仅启用的真实运行时分流，缺失响应不得回退。 Route only enabled real execution; never fall back on missing evidence.
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    private FeatureDriftRuntimeClient featureDriftRuntime;
+
 
     private final CompetitionModelLifecycleService lifecycleService;
 
@@ -39,6 +44,9 @@ public class CompetitionModelLifecycleToolController {
             HttpServletRequest request) {
         long startedNanos = System.nanoTime();
         AgentContract.RequestContext context = context(request, "mlops.attribution.report.get", body);
+        if (featureDriftRuntime != null && featureDriftRuntime.handles(context.toolName(), body.arguments())) {
+            return featureDriftRuntime.invoke(body, context);
+        }
         Map<String, Object> data = lifecycleService.attribution(context, body.arguments());
         return AgentContract.success(data, context, "XnetMLOps/attribution", String.valueOf(data.get("resourceVersion")), startedNanos);
     }
@@ -49,6 +57,9 @@ public class CompetitionModelLifecycleToolController {
             @RequestBody AgentContract.ToolRequest<CompetitionModelLifecycleService.FeaturePipelineArguments> body,
             HttpServletRequest request) {
         AgentContract.RequestContext context = context(request, "mlops.feature.pipeline.publish", body);
+        if (featureDriftRuntime != null && featureDriftRuntime.handles(context.toolName(), body.arguments())) {
+            return featureDriftRuntime.invoke(body, context);
+        }
         return lifecycleService.publishFeaturePipeline(body, context);
     }
 
@@ -61,6 +72,9 @@ public class CompetitionModelLifecycleToolController {
             @RequestBody AgentContract.ToolRequest<CompetitionModelLifecycleService.TrainingSearchArguments> body,
             HttpServletRequest request) {
         AgentContract.RequestContext context = context(request, body.toolName(), body);
+        if (featureDriftRuntime != null && featureDriftRuntime.handles(context.toolName(), body.arguments())) {
+            return featureDriftRuntime.invoke(body, context);
+        }
         return lifecycleService.startTrainingSearch(body, context);
     }
 
@@ -71,6 +85,9 @@ public class CompetitionModelLifecycleToolController {
             HttpServletRequest request) {
         long startedNanos = System.nanoTime();
         AgentContract.RequestContext context = context(request, "mlops.model.evaluation.run", body);
+        if (featureDriftRuntime != null && featureDriftRuntime.handles(context.toolName(), body.arguments())) {
+            return featureDriftRuntime.invoke(body, context);
+        }
         Map<String, Object> data = lifecycleService.evaluate(context, body.arguments());
         return AgentContract.success(data, context, "XnetMLOps/model-evaluation", String.valueOf(data.get("resourceVersion")), startedNanos);
     }
@@ -81,6 +98,9 @@ public class CompetitionModelLifecycleToolController {
             @RequestBody AgentContract.ToolRequest<CompetitionModelLifecycleService.ModelRegisterArguments> body,
             HttpServletRequest request) {
         AgentContract.RequestContext context = context(request, "mlops.model.register", body);
+        if (featureDriftRuntime != null && featureDriftRuntime.handles(context.toolName(), body.arguments())) {
+            return featureDriftRuntime.invoke(body, context);
+        }
         return lifecycleService.registerModel(body, context);
     }
 
@@ -90,6 +110,9 @@ public class CompetitionModelLifecycleToolController {
             @RequestBody AgentContract.ToolRequest<CompetitionModelLifecycleService.FallbackApplyArguments> body,
             HttpServletRequest request) {
         AgentContract.RequestContext context = context(request, "mlops.feature.fallback.apply", body);
+        if (featureDriftRuntime != null && featureDriftRuntime.handles(context.toolName(), body.arguments())) {
+            return featureDriftRuntime.invoke(body, context);
+        }
         return lifecycleService.applyFallback(body, context);
     }
 
@@ -99,6 +122,9 @@ public class CompetitionModelLifecycleToolController {
             @RequestBody AgentContract.ToolRequest<CompetitionModelLifecycleService.FallbackRemoveArguments> body,
             HttpServletRequest request) {
         AgentContract.RequestContext context = context(request, "mlops.feature.fallback.remove", body);
+        if (featureDriftRuntime != null && featureDriftRuntime.handles(context.toolName(), body.arguments())) {
+            return featureDriftRuntime.invoke(body, context);
+        }
         return lifecycleService.removeFallback(body, context);
     }
 
@@ -108,6 +134,9 @@ public class CompetitionModelLifecycleToolController {
             @RequestBody AgentContract.ToolRequest<CompetitionModelLifecycleService.CanaryArguments> body,
             HttpServletRequest request) {
         AgentContract.RequestContext context = context(request, "mlops.deployment.canary.apply", body);
+        if (featureDriftRuntime != null && featureDriftRuntime.handles(context.toolName(), body.arguments())) {
+            return featureDriftRuntime.invoke(body, context);
+        }
         return lifecycleService.applyCanary(body, context);
     }
 
@@ -117,6 +146,9 @@ public class CompetitionModelLifecycleToolController {
             @RequestBody AgentContract.ToolRequest<CompetitionModelLifecycleService.PromoteArguments> body,
             HttpServletRequest request) {
         AgentContract.RequestContext context = context(request, "mlops.deployment.promote", body);
+        if (featureDriftRuntime != null && featureDriftRuntime.handles(context.toolName(), body.arguments())) {
+            return featureDriftRuntime.invoke(body, context);
+        }
         return lifecycleService.promote(body, context);
     }
 
@@ -127,6 +159,9 @@ public class CompetitionModelLifecycleToolController {
             HttpServletRequest request) {
         long startedNanos = System.nanoTime();
         AgentContract.RequestContext context = context(request, "mlops.release.validation.get", body);
+        if (featureDriftRuntime != null && featureDriftRuntime.handles(context.toolName(), body.arguments())) {
+            return featureDriftRuntime.invoke(body, context);
+        }
         Map<String, Object> data = lifecycleService.releaseValidation(context, body.arguments());
         return AgentContract.success(data, context, "XnetMLOps/release-validation", String.valueOf(data.get("resourceVersion")), startedNanos);
     }

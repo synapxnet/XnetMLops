@@ -12,9 +12,13 @@ import com.synapxnet.goai.contract.AgentContractException;
 import com.synapxnet.goai.contract.GovernedApprovalVerifier;
 import com.synapxnet.goai.contract.GovernedResourceVersionTracker;
 import com.synapxnet.mlopsmepservice.agent.dto.MepAgentDtos;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.springframework.stereotype.Service;
 
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Path;
 import java.time.Instant;
 import java.util.Collections;
 import java.util.LinkedHashMap;
@@ -22,6 +26,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Supplier;
 
 /**
  * 维护比赛部署的模型迭代、备用特征、灰度和发布状态，并生成可独立验证的 Live 证据。
@@ -32,6 +37,10 @@ public class CompetitionModelLifecycleService {
     private final GovernedApprovalVerifier approvalVerifier;
     private final QuantitativeRuntimeClient quantitativeRuntimeClient;
     private final RecommendationRuntimeClient recommendationRuntimeClient;
+    private volatile boolean legacyStateUnavailable;
+    private MepGovernedStateCheckpoint checkpoint;
+    private Map<String, Object> pendingExecution;
+    private final ObjectMapper checkpointMapper = new ObjectMapper();
     private final Map<String, LifecycleState> incidentStates = new ConcurrentHashMap<>();
     private final GovernedResourceVersionTracker versionTracker = new GovernedResourceVersionTracker();
 
@@ -64,7 +73,7 @@ public class CompetitionModelLifecycleService {
      */
     public Map<String, Object> deploymentEvidence(
             AgentContract.RequestContext context, String deploymentUid) {
-        return versionTracker.readConsistently(() -> withResourceVersions(context, deploymentUid, deploymentUid,
+        return durableRead(() -> withResourceVersions(context, deploymentUid, deploymentUid,
                 deploymentEvidenceLocked(context, deploymentUid)));
     }
 
@@ -125,7 +134,7 @@ public class CompetitionModelLifecycleService {
     public Map<String, Object> probe(
             AgentContract.RequestContext context, MepAgentDtos.InferenceProbeArguments arguments) {
         requireDeployment(arguments == null ? null : arguments.deploymentUid());
-        return versionTracker.readConsistently(() -> withResourceVersions(context, arguments.deploymentUid(), arguments.deploymentUid(),
+        return durableRead(() -> withResourceVersions(context, arguments.deploymentUid(), arguments.deploymentUid(),
                 probeLocked(context, arguments)));
     }
 
@@ -179,7 +188,7 @@ public class CompetitionModelLifecycleService {
     public Map<String, Object> attribution(
             AgentContract.RequestContext context, AttributionArguments arguments) {
         requireDeployment(arguments == null ? null : arguments.deploymentUid());
-        return versionTracker.readConsistently(() -> withResourceVersions(context, arguments.deploymentUid(), arguments.deploymentUid(),
+        return durableRead(() -> withResourceVersions(context, arguments.deploymentUid(), arguments.deploymentUid(),
                 attributionLocked(context, arguments)));
     }
 
@@ -304,7 +313,7 @@ public class CompetitionModelLifecycleService {
     public Map<String, Object> evaluate(
             AgentContract.RequestContext context, EvaluationArguments arguments) {
         requireEvaluation(arguments);
-        return versionTracker.readConsistently(() -> {
+        return durableRead(() -> {
             CompetitionModelResourceBinding.forDeployment(arguments.deploymentUid()).requireResource(arguments.experimentUid());
             return withResourceVersions(context, arguments.deploymentUid(), arguments.experimentUid(), evaluateLocked(context, arguments));
         });
@@ -495,7 +504,7 @@ public class CompetitionModelLifecycleService {
     public Map<String, Object> releaseValidation(
             AgentContract.RequestContext context, ReleaseValidationArguments arguments) {
         requireRelease(arguments);
-        return versionTracker.readConsistently(() -> withResourceVersions(context, arguments.deploymentUid(), arguments.deploymentUid() + "/traffic",
+        return durableRead(() -> withResourceVersions(context, arguments.deploymentUid(), arguments.deploymentUid() + "/traffic",
                 releaseValidationLocked(context, arguments)));
     }
 
@@ -585,6 +594,7 @@ public class CompetitionModelLifecycleService {
             AgentContract.ToolRequest<?> body,
             AgentContract.RequestContext context,
             Mutation mutation) {
+        requireLegacyState();
         long startedNanos = System.nanoTime();
         String deploymentUid = deploymentUid(body.arguments());
         String canonicalResourceId = canonicalResourceId(body.arguments());
@@ -594,8 +604,155 @@ public class CompetitionModelLifecycleService {
         }
         GovernedApprovalVerifier.ApprovalDecision decision = approvalVerifier.verify(body, context);
         return versionTracker.readConsistently(() -> {
-            initializeResources(context.workspaceId(), deploymentUid);
-            return executeApproved(body, context, mutation, startedNanos, decision);
+            requireLegacyState();
+            verifyCheckpoint();
+            try {
+                initializeResources(context.workspaceId(), deploymentUid);
+                var result = executeApproved(body, context, () -> {
+                    markPending(body, context);
+                    return mutation.apply();
+                }, startedNanos, decision);
+                commitCheckpoint(false);
+                return result;
+            } catch (RuntimeException failure) {
+                if (pendingExecution != null) legacyStateUnavailable = true;
+                else if (!legacyStateUnavailable) commitCheckpoint(false);
+                throw failure;
+            }
+        });
+    }
+
+    /** 在同一锁内持久保存读取产生的内部初始化和质量门结论。 / Persist read-side initialization and quality gates under the same lock. */
+    private <T> T durableRead(Supplier<T> reader) {
+        return versionTracker.readConsistently(() -> {
+            requireLegacyState();
+            verifyCheckpoint();
+            try { return reader.get(); }
+            finally { if (!legacyStateUnavailable) commitCheckpoint(false); }
+        });
+    }
+
+    /** 外部动作只在审批和资源版本校验后进入此处；落盘后才调用动作。 / Enter only after approval and resource-version checks; persist before calling the action. */
+    private void markPending(AgentContract.ToolRequest<?> body, AgentContract.RequestContext context) {
+        if (checkpoint == null) return;
+        Map<String, Object> pending = new LinkedHashMap<>(Map.of("workspaceId", context.workspaceId(), "incidentId", context.incidentId(),
+                "requestId", context.requestId(), "toolName", body.toolName(), "stepId", body.stepId(),
+                "resourceId", body.resourceId(), "expectedResourceVersion", body.expectedResourceVersion(),
+                "idempotencyKey", body.idempotencyKey(), "approvalId", body.approvalId(), "startedAt", Instant.now().toString()));
+        pending.put("planDigest", body.planDigest());
+        pending.put("argumentsDigest", body.argumentsDigest());
+        pendingExecution = Collections.unmodifiableMap(pending);
+        commitCheckpoint(true);
+    }
+
+    /** 请求入口验证磁盘当前状态；损坏后本进程永久隔离。 / Verify the current disk state at request entry and permanently quarantine on corruption. */
+    private void verifyCheckpoint() {
+        if (checkpoint == null) return;
+        try { checkpoint.verifyCurrent(); }
+        catch (Exception failure) { throw checkpointFailure(failure); }
+    }
+
+    /** 持久提交全部状态，成功提交结果后才清除内存 pending。 / Commit complete state and clear in-memory pending only after the result is durable. */
+    private void commitCheckpoint(boolean retainPending) {
+        if (checkpoint == null) return;
+        try {
+            checkpoint.commit(checkpointState(retainPending ? pendingExecution : null));
+            if (!retainPending) pendingExecution = null;
+        } catch (Exception failure) { throw checkpointFailure(failure); }
+    }
+
+    /** 记录需要人工核对的持久化故障，不假设外部动作回滚。 / Record a persistence fault requiring reconciliation without assuming external rollback. */
+    private AgentContractException checkpointFailure(Exception failure) {
+        legacyStateUnavailable = true;
+        return new AgentContractException(503, "STATE_UNAVAILABLE",
+                "治理检查点不可用或外部动作结果未确认，已阻止继续执行；需要核对持久记录。");
+    }
+
+    /** 序列化全部领域、真实和演练版本、幂等记录及当前动作。 / Serialize all domains, live/rehearsal versions, idempotency records and the current action. */
+    private JsonNode checkpointState(Map<String, Object> pending) {
+        ObjectNode value = checkpointMapper.createObjectNode();
+        value.put("schema", "openxnet.mlops-state-checkpoint.v1");
+        value.set("tracker", checkpointMapper.valueToTree(versionTracker.snapshot()));
+        Map<String, LifecycleSnapshot> domains = new LinkedHashMap<>();
+        incidentStates.forEach((key, state) -> domains.put(key, new LifecycleSnapshot(state.activeRevision,
+                state.targetRevision, state.resourceVersion, state.trafficPercent, state.featurePipelinePublished,
+                state.trainingCompleted, state.evaluationPassed, state.registered, state.canaryPassed, state.promoted,
+                state.fallbackFeatureActive, state.contractHealthy)));
+        value.set("domainState", checkpointMapper.valueToTree(domains));
+        value.set("pendingExecution", checkpointMapper.valueToTree(pending));
+        return value;
+    }
+
+    /** 使用生产目录同步创建当前状态检查点。 / Create the current-state checkpoint using production directory synchronization. */
+    void initializeCheckpoint(Path directory, Path bootstrap, String digest) {
+        initializeCheckpoint(directory, bootstrap, digest, null);
+    }
+
+    /** 在服务暴露前整体校验当前规范领域键与版本，测试可注入目录同步。 / Validate canonical domains and versions before serving; tests may inject directory sync. */
+    void initializeCheckpoint(Path directory, Path bootstrap, String digest, GovernedStateCheckpointStore.Durability durability) {
+        versionTracker.readConsistently(() -> {
+            if (checkpoint != null || !incidentStates.isEmpty() || !versionTracker.snapshot().liveVersions().isEmpty())
+                throw new IllegalStateException("MEP checkpoint requires empty state.");
+            MepGovernedStateCheckpoint candidate = null;
+            try {
+                candidate = new MepGovernedStateCheckpoint(directory, bootstrap, digest, durability);
+                JsonNode initial = candidate.initialState();
+                var trackerState = candidate.decode(initial.required("tracker"), GovernedResourceVersionTracker.StateSnapshot.class);
+                var validatedTracker = new GovernedResourceVersionTracker();
+                validatedTracker.restore(trackerState);
+                Map<String, LifecycleState> restored = new LinkedHashMap<>();
+                java.util.Set<String> knownResources = new java.util.HashSet<>();
+                JsonNode domains = initial.required("domainState");
+                if (domains.size() > 4096) throw new IllegalArgumentException("MEP domain budget exceeded.");
+                var entries = domains.fields();
+                while (entries.hasNext()) {
+                    var entry = entries.next();
+                    String[] key = entry.getKey().split(":", -1);
+                    if (key.length != 2 || key[0].isBlank()) throw new IllegalArgumentException("MEP canonical domain identity is invalid.");
+                    requireText(key[0], "workspaceId");
+                    var binding = CompetitionModelResourceBinding.forDeployment(key[1]);
+                    LifecycleSnapshot snapshot = candidate.decode(entry.getValue(), LifecycleSnapshot.class);
+                    if (snapshot.activeRevision() < 1 || snapshot.targetRevision() < 1 || snapshot.resourceVersion() < 1
+                            || snapshot.trafficPercent() < 0 || snapshot.trafficPercent() > 100)
+                        throw new IllegalArgumentException("MEP lifecycle snapshot is invalid.");
+                    for (String resource : binding.resourceIds()) {
+                        String resourceKey = key[0] + ":" + resource;
+                        if (!trackerState.liveVersions().containsKey(resourceKey)) throw new IllegalArgumentException("MEP canonical resource version is missing.");
+                        knownResources.add(resourceKey);
+                    }
+                    LifecycleState state = new LifecycleState(key[1]);
+                    state.activeRevision = snapshot.activeRevision(); state.targetRevision = snapshot.targetRevision();
+                    state.resourceVersion = snapshot.resourceVersion(); state.trafficPercent = snapshot.trafficPercent();
+                    state.featurePipelinePublished = snapshot.featurePipelinePublished(); state.trainingCompleted = snapshot.trainingCompleted();
+                    state.evaluationPassed = snapshot.evaluationPassed(); state.registered = snapshot.registered();
+                    state.canaryPassed = snapshot.canaryPassed(); state.promoted = snapshot.promoted();
+                    state.fallbackFeatureActive = snapshot.fallbackFeatureActive(); state.contractHealthy = snapshot.contractHealthy();
+                    restored.put(entry.getKey(), state);
+                }
+                if (!knownResources.equals(trackerState.liveVersions().keySet())) throw new IllegalArgumentException("MEP unbound resource version rejected.");
+                versionTracker.restore(validatedTracker.snapshot());
+                incidentStates.putAll(restored);
+                candidate.acceptValidatedInitialState(checkpointState(null));
+                checkpoint = candidate;
+                legacyStateUnavailable = false;
+            } catch (Exception failure) {
+                legacyStateUnavailable = true;
+                if (candidate != null) try { candidate.close(); } catch (Exception ignored) { /* 已隔离。 / Already quarantined. */ }
+                throw new IllegalStateException("MEP current-state checkpoint refused; legacy governance remains closed.", failure);
+            }
+            return null;
+        });
+    }
+
+    /** 服务关闭时释放持久状态独占锁，不删除 pending。 / Release durable-state ownership during shutdown without deleting pending work. */
+    @jakarta.annotation.PreDestroy
+    void closeCheckpoint() {
+        versionTracker.readConsistently(() -> {
+            if (checkpoint != null) {
+                try { checkpoint.close(); }
+                catch (Exception failure) { legacyStateUnavailable = true; }
+            }
+            return null;
         });
     }
 
@@ -667,6 +824,8 @@ public class CompetitionModelLifecycleService {
 
     /** 初始化平台登记资源，保留迁移后的已有版本。 / Initialize registered platform resources while preserving restored versions. */
     private void initializeResources(String workspaceId, String deploymentUid) {
+        requireLegacyState();
+        incidentStates.computeIfAbsent(workspaceId + ":" + deploymentUid, ignored -> new LifecycleState(deploymentUid));
         for (String resource : CompetitionModelResourceBinding.forDeployment(deploymentUid).resourceIds()) {
             versionTracker.initializeResource(workspaceId, resource, 42L);
         }
@@ -674,6 +833,7 @@ public class CompetitionModelLifecycleService {
 
     /** 从唯一版本源读取当前部署所有关联目标。 / Read all associated deployment targets from the single version source. */
     private Map<String, String> resourceVersions(String workspaceId, String deploymentUid) {
+        requireLegacyState();
         Map<String, String> versions = new LinkedHashMap<>();
         for (String resource : CompetitionModelResourceBinding.forDeployment(deploymentUid).resourceIds()) {
             versions.put(resource, Long.toString(versionTracker.currentVersion(workspaceId, resource)));
@@ -790,8 +950,20 @@ public class CompetitionModelLifecycleService {
         return Collections.unmodifiableMap(new LinkedHashMap<>(value));
     }
 
+    /** 隔离缺少最新快照的旧状态，不载入过期迁移。 / Quarantine legacy state lacking a current checkpoint without replaying stale migration. */
+    void quarantineUnavailableLegacyState() {
+        legacyStateUnavailable = true;
+    }
+
+    /** 未知治理状态必须拒绝所有旧读写及版本初始化。 / Unknown governed state must reject legacy reads, writes and version initialization. */
+    private void requireLegacyState() {
+        if (legacyStateUnavailable) throw new AgentContractException(503, "STATE_UNAVAILABLE",
+                "旧治理状态缺少最新持久快照，已隔离；未回放旧迁移或重置资源版本。");
+    }
+
     /** 校验部署标识属于明确登记的资源。 / Validate a deployment against explicitly registered resources. */
     private void requireDeployment(String deploymentUid) {
+        requireLegacyState();
         requireText(deploymentUid, "deploymentUid");
         if (!supports(deploymentUid)) {
             throw new AgentContractException(404, "RESOURCE_NOT_FOUND", "比赛部署不存在");

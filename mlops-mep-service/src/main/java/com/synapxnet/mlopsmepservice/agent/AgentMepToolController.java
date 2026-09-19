@@ -8,6 +8,7 @@
 package com.synapxnet.mlopsmepservice.agent;
 
 import com.synapxnet.goai.contract.AgentContract;
+import com.synapxnet.goai.contract.FeatureDriftRuntimeClient;
 import com.synapxnet.goai.contract.AgentContractException;
 import com.synapxnet.mlopsmepservice.agent.dto.MepAgentDtos;
 import jakarta.servlet.http.HttpServletRequest;
@@ -22,6 +23,10 @@ import org.springframework.web.bind.annotation.RestController;
  */
 @RestController
 public class AgentMepToolController {
+    // 仅启用的真实运行时分流，缺失响应不得回退。 Route only enabled real execution; never fall back on missing evidence.
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    private FeatureDriftRuntimeClient featureDriftRuntime;
+
 
     private final DeploymentEvidenceService deploymentEvidenceService;
     private final InferenceProbeService probeService;
@@ -57,6 +62,9 @@ public class AgentMepToolController {
         long startedNanos = System.nanoTime();
         String toolName = "mlops.deployment.get";
         AgentContract.RequestContext context = AgentContract.requireContext(servletRequest, toolName, body);
+        if (featureDriftRuntime != null && featureDriftRuntime.handles(context.toolName(), body.arguments())) {
+            return featureDriftRuntime.invoke(body, context);
+        }
         if (body.arguments() == null) {
             throw new AgentContractException(400, "INVALID_ARGUMENT", "arguments 不能为空");
         }
@@ -81,6 +89,9 @@ public class AgentMepToolController {
         long startedNanos = System.nanoTime();
         String toolName = "mlops.inference.probe";
         AgentContract.RequestContext context = AgentContract.requireContext(servletRequest, toolName, body);
+        if (featureDriftRuntime != null && featureDriftRuntime.handles(context.toolName(), body.arguments())) {
+            return featureDriftRuntime.invoke(body, context);
+        }
         if (body.arguments() != null && competitionLifecycleService.supports(body.arguments().deploymentUid())) {
             java.util.Map<String, Object> data = competitionLifecycleService.probe(context, body.arguments());
             return AgentContract.success(
@@ -100,6 +111,9 @@ public class AgentMepToolController {
         long startedNanos = System.nanoTime();
         String toolName = "mlops.deployment.rollback";
         AgentContract.RequestContext context = AgentContract.requireContext(servletRequest, toolName, body);
+        if (featureDriftRuntime != null && featureDriftRuntime.handles(context.toolName(), body.arguments())) {
+            return featureDriftRuntime.invoke(body, context);
+        }
         if (body.arguments() != null && competitionLifecycleService.supports(body.arguments().deploymentUid())) {
             return competitionLifecycleService.rollback(body, context);
         }
