@@ -1,9 +1,12 @@
 package com.synapxnet.mlopsxaaservice.controller;
 
+import com.synapxnet.mlopsxaaservice.dto.OpenXnetSkillImportRequest;
 import com.synapxnet.mlopsxaaservice.entity.Skill;
 import com.synapxnet.mlopsxaaservice.entity.SkillCategory;
 import com.synapxnet.mlopsxaaservice.entity.SkillInstallation;
 import com.synapxnet.mlopsxaaservice.service.SkillService;
+import com.synapxnet.mlopsxaaservice.security.OpenXnetSkillImportAuthorizer;
+import com.synapxnet.mlopsxaaservice.security.MlopsUserTokenAuthorizer;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -22,10 +25,17 @@ import java.util.Map;
 public class SkillController {
 
     private final SkillService skillService;
+    private final OpenXnetSkillImportAuthorizer openXnetSkillImportAuthorizer;
+    private final MlopsUserTokenAuthorizer mlopsUserTokenAuthorizer;
 
     @Autowired
-    public SkillController(SkillService skillService) {
+    public SkillController(
+            SkillService skillService,
+            OpenXnetSkillImportAuthorizer openXnetSkillImportAuthorizer,
+            MlopsUserTokenAuthorizer mlopsUserTokenAuthorizer) {
         this.skillService = skillService;
+        this.openXnetSkillImportAuthorizer = openXnetSkillImportAuthorizer;
+        this.mlopsUserTokenAuthorizer = mlopsUserTokenAuthorizer;
     }
 
     private static class ResponseUtils {
@@ -73,6 +83,39 @@ public class SkillController {
     }
 
     /**
+     * 受控导入 OpenXnet 企业 Skill 候选；验证委托、Workspace 与摘要后只写入草稿。
+     *
+     * @param authorization OpenXnet Bearer 委托令牌
+     * @param idempotencyKey 制品摘要幂等键
+     * @param tenantUid Workspace 租户
+     * @param userId 调用主体
+     * @param request Skill 候选包
+     * @return MLOps 仓库草稿回执
+     */
+    @PostMapping("/skills/import/openxnet")
+    public ResponseEntity<Map<String, Object>> importOpenXnetSkill(
+            @RequestHeader("Authorization") String authorization,
+            @RequestHeader("Idempotency-Key") String idempotencyKey,
+            @RequestHeader("X-Tenant-UID") String tenantUid,
+            @RequestHeader(value = "X-User-ID", required = false) String userId,
+            @RequestBody OpenXnetSkillImportRequest request) {
+        try {
+            OpenXnetSkillImportAuthorizer.AuthorizedImport authorized = openXnetSkillImportAuthorizer.authorize(
+                    authorization,
+                    idempotencyKey,
+                    tenantUid,
+                    userId,
+                    request);
+            Skill imported = skillService.importOpenXnetSkill(request, authorized.subject());
+            return ResponseUtils.success("OpenXnet 企业 Skill 已导入为候选草稿", imported);
+        } catch (IllegalArgumentException | IllegalStateException exception) {
+            return ResponseUtils.error(403, exception.getMessage());
+        } catch (Exception exception) {
+            return ResponseUtils.error(500, "OpenXnet 企业 Skill 导入失败: " + exception.getMessage());
+        }
+    }
+
+    /**
      * 获取技能列表
      */
     @GetMapping("/skills")
@@ -113,6 +156,27 @@ public class SkillController {
             return ResponseUtils.success(skills);
         } catch (Exception e) {
             return ResponseUtils.error(500, "获取仓库技能失败: " + e.getMessage());
+        }
+    }
+
+    /**
+     * 获取当前登录用户的 OpenXnet 企业候选；验证 MLOps JWT 后按创建主体隔离。
+     *
+     * @param authorization MLOps 登录 Bearer 令牌
+     * @param category 可选技能分类
+     * @return 当前用户可见的候选草稿
+     */
+    @GetMapping("/skills/repository/openxnet-candidates")
+    public ResponseEntity<Map<String, Object>> getOpenXnetCandidates(
+            @RequestHeader("Authorization") String authorization,
+            @RequestParam(required = false) String category) {
+        try {
+            String subject = mlopsUserTokenAuthorizer.authorize(authorization);
+            return ResponseUtils.success(skillService.getOpenXnetCandidates(subject, category));
+        } catch (IllegalArgumentException | IllegalStateException exception) {
+            return ResponseUtils.error(401, exception.getMessage());
+        } catch (Exception exception) {
+            return ResponseUtils.error(500, "获取 OpenXnet 企业候选失败: " + exception.getMessage());
         }
     }
 

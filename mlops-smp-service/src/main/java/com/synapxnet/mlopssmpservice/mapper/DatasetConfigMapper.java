@@ -10,6 +10,14 @@ import java.util.Map;
 
 @Mapper
 public interface DatasetConfigMapper {
+    /** 更新已有标识的标签，不改变业务引用键。Update the label without changing the business reference key. */
+    @Update("UPDATE xnet_mlops_smp_dataset_config_info SET label = #{label} WHERE config_type = #{configType} AND value = #{value}")
+    int updateDatasetConfigLabel(@Param("label") String label, @Param("value") String value, @Param("configType") String configType);
+
+    /** 检查其他配置项的标签冲突。Check label conflicts with other configuration items. */
+    @Select("SELECT COUNT(*) FROM xnet_mlops_smp_dataset_config_info WHERE label = #{label} AND NOT (config_type = #{configType} AND value = #{value})")
+    int countOtherLabels(@Param("label") String label, @Param("value") String value, @Param("configType") String configType);
+
     @Select("SELECT label, value FROM xnet_mlops_smp_dataset_config_info WHERE config_type = 'DATASET_TYPE'")
     List<Map<String, String>> getDatasetTypes();
 

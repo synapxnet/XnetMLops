@@ -8,8 +8,17 @@ services:
     ports:
       - "${WEB_PORT:-80}:80"
     volumes:
-      - ${WEB_DIST_PATH:-../XnetMLops-web/playground/dist}:/usr/share/nginx/html:ro
-      - ./nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+      - ${WEB_DIST_PATH:-../XnetMLops-web/apps/web-antd/dist}:/usr/share/nginx/html:ro
+      - ./nginx/default.conf:/etc/nginx/templates/default.conf.template:ro
+    environment:
+      XNET_LOGIN_UPSTREAM: ${XNET_LOGIN_UPSTREAM:-mlops-login:8181}
+      XNET_DPP_UPSTREAM: ${XNET_DPP_UPSTREAM:-mlops-dpp-service:8182}
+      XNET_MTP_UPSTREAM: ${XNET_MTP_UPSTREAM:-mlops-mtp-service:8183}
+      XNET_MEP_UPSTREAM: ${XNET_MEP_UPSTREAM:-mlops-mep-service:8184}
+      XNET_SMP_UPSTREAM: ${XNET_SMP_UPSTREAM:-mlops-smp-service:8185}
+      XNET_XAA_UPSTREAM: ${XNET_XAA_UPSTREAM:-mlops-xaa-service:8186}
+      XNET_RESIDENT_AGENT_URL: ${XNET_RESIDENT_AGENT_URL:-}
+      XNET_DNS_RESOLVER: ${XNET_DNS_RESOLVER:-127.0.0.11}
     depends_on:
       - mlops-login
       - mlops-smp-service
@@ -28,7 +37,7 @@ services:
     image: mlops-login:${TAG:-latest}
     container_name: mlops-login
     ports:
-      - "${LOGIN_PORT:-8181}:8181"
+      - "127.0.0.1:${LOGIN_PORT:-8181}:8181"
     environment:
       - DB_HOST=${DB_HOST:?DB_HOST is required}
       - DB_PORT=${DB_PORT:-3306}
@@ -36,6 +45,8 @@ services:
       - REDIS_HOST=${REDIS_HOST:?REDIS_HOST is required}
       - REDIS_PORT=${REDIS_PORT:-6379}
       - JWT_SECRET=${JWT_SECRET:?JWT_SECRET is required}
+      - XNET_SMS_GATEWAY_URL=${XNET_SMS_GATEWAY_URL:-}
+      - XNET_SMS_GATEWAY_TOKEN=${XNET_SMS_GATEWAY_TOKEN:-}
     networks:
       - mlops-net
     restart: unless-stopped
@@ -46,16 +57,19 @@ services:
     image: mlops-dpp-service:${TAG:-latest}
     container_name: mlops-dpp-service
     ports:
-      - "${DPP_PORT:-8182}:8182"
+      - "127.0.0.1:${DPP_PORT:-8182}:8182"
     environment:
       - DB_HOST=${DB_HOST:?DB_HOST is required}
       - DB_PORT=${DB_PORT:-3306}
       - DB_PASSWORD=${DB_PASSWORD:?DB_PASSWORD is required}
       - HDFS_HOST=${HDFS_HOST:?HDFS_HOST is required}
       - HDFS_PORT=${HDFS_PORT:-8020}
+      # 显式传递存储用户。 / Forward the configured storage user.
+      - HDFS_USER=${HDFS_USER:-atguigu}
       - JENKINS_HOST=${JENKINS_HOST:?JENKINS_HOST is required}
       - JENKINS_PORT=${JENKINS_PORT:-8080}
-      - JENKINS_API_TOKEN=${JENKINS_API_TOKEN:?JENKINS_API_TOKEN is required}
+      - XNET_DATAOPS_API_BASE_URL=${XNET_DATAOPS_API_BASE_URL:?XNET_DATAOPS_API_BASE_URL is required}
+      - XNET_DATAOPS_SERVICE_TOKEN=${XNET_DATAOPS_SERVICE_TOKEN:-}
     volumes:
       - mlops-upload-data:/data/tmp
     networks:
@@ -68,20 +82,28 @@ services:
     image: mlops-mtp-service:${TAG:-latest}
     container_name: mlops-mtp-service
     ports:
-      - "${MTP_PORT:-8183}:8183"
+      - "127.0.0.1:${MTP_PORT:-8183}:8183"
     environment:
       - DB_HOST=${DB_HOST:?DB_HOST is required}
       - DB_PORT=${DB_PORT:-3306}
       - DB_PASSWORD=${DB_PASSWORD:?DB_PASSWORD is required}
       - HDFS_HOST=${HDFS_HOST:?HDFS_HOST is required}
       - HDFS_PORT=${HDFS_PORT:-8020}
+      # 显式传递存储用户。 / Forward the configured storage user.
+      - HDFS_USER=${HDFS_USER:-atguigu}
       - JENKINS_HOST=${JENKINS_HOST:?JENKINS_HOST is required}
       - JENKINS_PORT=${JENKINS_PORT:-8080}
-      - JENKINS_API_TOKEN=${JENKINS_API_TOKEN:?JENKINS_API_TOKEN is required}
       - REDIS_HOST=${REDIS_HOST:?REDIS_HOST is required}
       - REDIS_PORT=${REDIS_PORT:-6379}
+      - RECOMMENDATION_PG_URL=${RECOMMENDATION_PG_URL:?RECOMMENDATION_PG_URL is required}
+      - RECOMMENDATION_MLOPS_DB_USERNAME=${RECOMMENDATION_MLOPS_DB_USERNAME:-recommendation_mlops_reader}
+      - RECOMMENDATION_MLOPS_DB_PASSWORD=${RECOMMENDATION_MLOPS_DB_PASSWORD:?RECOMMENDATION_MLOPS_DB_PASSWORD is required}
+      - RECOMMENDATION_TRAINING_OUTPUT_ROOT=/data/recommendation-runs
+      - RECOMMENDATION_TRAINING_TIMEOUT_SECONDS=${RECOMMENDATION_TRAINING_TIMEOUT_SECONDS:-600}
+      - RECOMMENDATION_TRAINING_EPOCHS=${RECOMMENDATION_TRAINING_EPOCHS:-3}
     volumes:
       - mlops-upload-data:/data/tmp
+      - mlops-model-data:/data/recommendation-runs
     networks:
       - mlops-net
     restart: unless-stopped
@@ -92,13 +114,32 @@ services:
     image: mlops-mep-service:${TAG:-latest}
     container_name: mlops-mep-service
     ports:
-      - "${MEP_PORT:-8184}:8184"
+      - "127.0.0.1:${MEP_PORT:-8184}:8184"
     environment:
       - DB_HOST=${DB_HOST:?DB_HOST is required}
       - DB_PORT=${DB_PORT:-3306}
       - DB_PASSWORD=${DB_PASSWORD:?DB_PASSWORD is required}
       - MTP_SERVICE_URL=http://mlops-mtp-service:8183
       - SMP_SERVICE_URL=http://mlops-smp-service:8185
+      - OPENXNET_AGENT_DELEGATION_SECRET=${OPENXNET_AGENT_DELEGATION_SECRET:?OPENXNET_AGENT_DELEGATION_SECRET is required}
+      - OPENXNET_AGENT_AUDIENCE=${OPENXNET_AGENT_AUDIENCE:-openxnet-agent-adapter}
+      - OPENXNET_APPROVAL_BASE_URL=${OPENXNET_APPROVAL_BASE_URL:?OPENXNET_APPROVAL_BASE_URL is required}
+      - OPENXNET_APPROVAL_SERVICE_TOKEN=${OPENXNET_APPROVAL_SERVICE_TOKEN:?OPENXNET_APPROVAL_SERVICE_TOKEN is required}
+      - RECOMMENDATION_RUNTIME_URL=${RECOMMENDATION_RUNTIME_URL:-}
+      - RECOMMENDATION_EXPECTED_ALGORITHM_ID=${RECOMMENDATION_EXPECTED_ALGORITHM_ID:-}
+      - RECOMMENDATION_EXPECTED_PRODUCT_VERSION=${RECOMMENDATION_EXPECTED_PRODUCT_VERSION:-}
+      - QUANTITATIVE_RUNTIME_URL=${QUANTITATIVE_RUNTIME_URL:-}
+      - QUANTITATIVE_RUNTIME_TOKEN=${QUANTITATIVE_RUNTIME_TOKEN:-}
+      - QUANTITATIVE_DEPLOYMENT_UID=${QUANTITATIVE_DEPLOYMENT_UID:-}
+      - RECOMMENDATION_DEPLOYMENT_UID=${RECOMMENDATION_DEPLOYMENT_UID:-}
+      - RECOMMENDATION_PROBE_DATASET_REF=${RECOMMENDATION_PROBE_DATASET_REF:-}
+      - RECOMMENDATION_PROBE_REQUEST=${RECOMMENDATION_PROBE_REQUEST:-}
+      - OPENXNET_REHEARSAL_ENABLED=${OPENXNET_REHEARSAL_ENABLED:-false}
+      - OPENXNET_MODEL_RESOURCE_BINDINGS=${OPENXNET_MODEL_RESOURCE_BINDINGS:-[]}
+      - OPENXNET_FEATURE_DRIFT_ENABLED=${OPENXNET_FEATURE_DRIFT_ENABLED:-false}
+      - OPENXNET_FEATURE_DRIFT_RUNTIME_URL=${OPENXNET_FEATURE_DRIFT_RUNTIME_URL:-}
+      - OPENXNET_FEATURE_DRIFT_TOKEN_FILE=${OPENXNET_FEATURE_DRIFT_TOKEN_FILE:-}
+      - OPENXNET_FEATURE_DRIFT_RESOURCE_IDS=${OPENXNET_FEATURE_DRIFT_RESOURCE_IDS:-}
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
     networks:
@@ -111,16 +152,20 @@ services:
     image: mlops-smp-service:${TAG:-latest}
     container_name: mlops-smp-service
     ports:
-      - "${SMP_PORT:-8185}:8185"
+      - "127.0.0.1:${SMP_PORT:-8185}:8185"
     environment:
+      - XNET_LOGIN_BASE_URL=http://mlops-login:8181
       - DB_HOST=${DB_HOST:?DB_HOST is required}
       - DB_PORT=${DB_PORT:-3306}
       - DB_PASSWORD=${DB_PASSWORD:?DB_PASSWORD is required}
       - HDFS_HOST=${HDFS_HOST:?HDFS_HOST is required}
       - HDFS_PORT=${HDFS_PORT:-8020}
+      # 显式传递存储用户。 / Forward the configured storage user.
+      - HDFS_USER=${HDFS_USER:-atguigu}
       - JENKINS_HOST=${JENKINS_HOST:?JENKINS_HOST is required}
       - JENKINS_PORT=${JENKINS_PORT:-8080}
-      - JENKINS_API_TOKEN=${JENKINS_API_TOKEN:?JENKINS_API_TOKEN is required}
+      # 未启用构建时允许读取页面初始化；保留已配置值。 / Allow reads without builds; preserve configured values.
+      - JENKINS_API_TOKEN=${JENKINS_API_TOKEN:-}
     networks:
       - mlops-net
     restart: unless-stopped
@@ -131,14 +176,16 @@ services:
     image: mlops-xaa-service:${TAG:-latest}
     container_name: mlops-xaa-service
     ports:
-      - "${XAA_PORT:-8186}:8186"
+      - "127.0.0.1:${XAA_PORT:-8186}:8186"
     environment:
       - DB_HOST=${DB_HOST:?DB_HOST is required}
       - DB_PORT=${DB_PORT:-3306}
       - DB_PASSWORD=${DB_PASSWORD:?DB_PASSWORD is required}
+      - JWT_SECRET=${JWT_SECRET:?JWT_SECRET is required}
       - DPP_SERVICE_URL=http://mlops-dpp-service:8182
       - MTP_SERVICE_URL=http://mlops-mtp-service:8183
       - MEP_SERVICE_URL=http://mlops-mep-service:8184
+      - OPENXNET_AGENT_DELEGATION_SECRET=${OPENXNET_AGENT_DELEGATION_SECRET:?OPENXNET_AGENT_DELEGATION_SECRET is required}
     networks:
       - mlops-net
     restart: unless-stopped
@@ -149,3 +196,4 @@ networks:
 
 volumes:
   mlops-upload-data:
+  mlops-model-data:

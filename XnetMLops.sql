@@ -17,20 +17,6 @@ CREATE TABLE XnetMLops.xnet_mlops_user_infos (
 );
 
 INSERT INTO XnetMLops.xnet_mlops_user_infos
-(uid, phone, realName, username,userId, roles, permission, roles_failure_time, create_time, update_time)
-VALUES (
-           '08626596595',
-           '12345678900',
-           '张三',
-           '猫又',
-           'c00000000',
-           '["super"]',
-           '["AC_100100","AC_100110","AC_100120","AC_100010"]',
-           NOW() + INTERVAL 360 DAY,
-           NOW(),
-           NOW()
-       );
-INSERT INTO XnetMLops.xnet_mlops_user_infos
 (uid, phone, realName, username, userId,roles, permission, roles_failure_time, create_time, update_time)
 VALUES (
            '08626596588',
@@ -102,8 +88,22 @@ CREATE TABLE XnetMLops.xnet_mlops_sys_team (
                                                FOREIGN KEY (dept_uid) REFERENCES XnetMLops.xnet_mlops_sys_department(uid) ON DELETE CASCADE
 ) COMMENT='团队表';
 
+CREATE TABLE XnetMLops.xnet_mlops_usr_organization_membership (
+                                                               id BIGINT AUTO_INCREMENT PRIMARY KEY,
+                                                               user_id INT NOT NULL,
+                                                               tenant_uid VARCHAR(50) NOT NULL,
+                                                               dept_uid VARCHAR(50),
+                                                               team_uid VARCHAR(50),
+                                                               status TINYINT NOT NULL DEFAULT 1,
+                                                               data_access_enabled TINYINT NOT NULL DEFAULT 0 COMMENT 'Explicit business data authorization',
+                                                               created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                                                               UNIQUE KEY uk_mlops_user_organization (user_id, tenant_uid, dept_uid, team_uid),
+                                                               INDEX idx_mlops_membership_user (user_id)
+) COMMENT='用户组织成员关系表';
+
 -- 插入租户数据
 INSERT INTO XnetMLops.xnet_mlops_sys_tenant (uid, tenant_id, tenant_name, status) VALUES
+                                                                                      ('TEN-SYNAPXNET', 'synapxnet', 'SynapXnet', 1),
                                                                                       ('TEN-ALIBABA', 'alibaba', '阿里巴巴集团', 1),
                                                                                       ('TEN-TENCENT', 'tencent', '腾讯控股有限公司', 1),
                                                                                       ('TEN-BAIDU', 'baidu', '百度网络技术有限公司', 1),
@@ -112,6 +112,7 @@ INSERT INTO XnetMLops.xnet_mlops_sys_tenant (uid, tenant_id, tenant_name, status
 
 -- 插入阿里巴巴的部门数据
 INSERT INTO XnetMLops.xnet_mlops_sys_department (uid, tenant_uid, dept_id, dept_name, status) VALUES
+                                                                                                  ('DEPT-SYNAPXNET-PLATFORM', 'TEN-SYNAPXNET', 'intelligent_platform', '智能平台部', 1),
                                                                                                   ('DEPT-ALI-TECH', 'TEN-ALIBABA', 'tech_center', '技术研发中心', 1),
                                                                                                   ('DEPT-ALI-MARKET', 'TEN-ALIBABA', 'marketing', '市场运营部', 1),
                                                                                                   ('DEPT-ALI-HR', 'TEN-ALIBABA', 'hr', '人力资源部', 1),
@@ -201,12 +202,25 @@ CREATE TABLE XnetMLops.xnet_mlops_dpp_dataset (
                                                   team_name VARCHAR(255) COMMENT '团队名称',
                                                   level TINYINT NOT NULL COMMENT '组织层级(0-3)',
                                                   description VARCHAR(500) COMMENT '数据集描述',
+                                                  source_platform VARCHAR(64) COMMENT '来源平台',
+                                                  source_product_name VARCHAR(128) COMMENT '来源数据产品名称',
+                                                  source_product_version VARCHAR(128) COMMENT '来源数据产品版本',
+                                                  source_uri VARCHAR(512) COMMENT '不含凭据的来源定位符',
+                                                  row_count BIGINT COMMENT '真实记录数',
+                                                  byte_size BIGINT COMMENT '导入制品字节数',
+                                                  schema_digest_sha256 CHAR(64) COMMENT '字段契约摘要',
+                                                  artifact_digest_sha256 CHAR(64) COMMENT '来源制品摘要',
+                                                  lineage_reference VARCHAR(512) COMMENT 'DataOps 血缘引用',
+                                                  import_status VARCHAR(32) COMMENT '导入状态',
+                                                  imported_at DATETIME COMMENT '导入时间',
                                                   created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
                                                   updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 ) COMMENT '数据集表';
 
 CREATE INDEX idx_dataset_tenant ON XnetMLops.xnet_mlops_dpp_dataset(tenant_uid);
 CREATE INDEX idx_dataset_team ON XnetMLops.xnet_mlops_dpp_dataset(team_uid);
+CREATE UNIQUE INDEX uk_dataset_source_version
+    ON XnetMLops.xnet_mlops_dpp_dataset(source_platform, source_product_version);
 
 
 CREATE TABLE XnetMLops.xnet_mlops_mtp_algorithms (
@@ -296,7 +310,7 @@ CREATE TABLE XnetMLops.xnet_mlops_smp_algorithms (
                                                      uid VARCHAR(36) NOT NULL UNIQUE COMMENT '算法唯一标识符',
                                                      url VARCHAR(255) NOT NULL COMMENT '算法仓库URL',
                                                      encrypted_token BLOB NOT NULL COMMENT 'AES-256加密的访问令牌',
-                                                     algorithmRepository VARCHAR(50) NOT NULL COMMENT '算法名称',
+                                                     algorithm VARCHAR(50) NOT NULL COMMENT '算法名称',
                                                      algorithm_version VARCHAR(50) NOT NULL COMMENT '算法版本',
                                                      description TEXT COMMENT '算法描述',
 
@@ -324,7 +338,7 @@ CREATE INDEX idx_smp_algorithms_dept ON XnetMLops.xnet_mlops_smp_algorithms(dept
 -- 添加复合唯一约束
 ALTER TABLE XnetMLops.xnet_mlops_smp_algorithms
     ADD CONSTRAINT unique_algorithm_entry
-        UNIQUE (url, algorithmRepository, algorithm_version);
+        UNIQUE (url, algorithm, algorithm_version);
 
 
 CREATE TABLE `xnet_mlops_smp_harbor_repository` (
@@ -376,6 +390,29 @@ CREATE TABLE XnetMLops.xnet_mlops_mtp_train_info (
                                                      FOREIGN KEY (task_uid) REFERENCES XnetMLops.xnet_mlops_mtp_train_task(uid) ON DELETE CASCADE
 );
 ALTER TABLE xnet_mlops_mtp_train_info ADD UNIQUE INDEX idx_job_uid (job_uid);
+
+CREATE TABLE XnetMLops.xnet_mlops_mtp_recommendation_run (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    run_uid VARCHAR(64) NOT NULL UNIQUE COMMENT '推荐训练运行标识',
+    dataset_id BIGINT NOT NULL COMMENT 'MLOps 数据集主键',
+    tenant_uid VARCHAR(128) NOT NULL COMMENT '租户边界',
+    user_id VARCHAR(128) NOT NULL COMMENT '发起用户',
+    product_version VARCHAR(128) NOT NULL COMMENT 'DataOps 数据产品版本',
+    approval_id VARCHAR(128) NOT NULL COMMENT '人工审批号',
+    idempotency_key VARCHAR(128) NOT NULL UNIQUE COMMENT '幂等键',
+    status VARCHAR(32) NOT NULL COMMENT '运行状态',
+    schema_digest_sha256 CHAR(64) NOT NULL COMMENT 'Schema 摘要',
+    artifact_digest_sha256 CHAR(64) NOT NULL COMMENT '训练输入摘要',
+    model_digest_sha256 CHAR(64) COMMENT '模型摘要',
+    artifact_reference VARCHAR(256) COMMENT '不含物理路径的制品引用',
+    metrics_json TEXT COMMENT '训练和测试指标',
+    error_summary VARCHAR(1000) COMMENT '失败摘要',
+    started_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    completed_at DATETIME NULL
+) COMMENT '推荐 DCN 训练运行审计表';
+
+CREATE INDEX idx_recommendation_run_tenant
+    ON XnetMLops.xnet_mlops_mtp_recommendation_run(tenant_uid, started_at);
 
 -- 调度训练任务表
 CREATE TABLE XnetMLops.xnet_mlops_mtp_train_schedule_info (
@@ -608,3 +645,7 @@ INSERT INTO `xnet_mlops_mep_deploy_node` (`uid`, `name`, `ip_address`, `port`, `
                                                                                                                                                                                                             ('node-002', 'CPU节点-01', '192.168.10.102', 22, 'online', 16, 32, NULL, '24.0.7', 'running', '["cpu", "production"]', '生产环境CPU计算节点', 'admin'),
                                                                                                                                                                                                             ('node-003', '测试节点-01', '192.168.10.103', 22, 'offline', 8, 16, NULL, '23.0.6', 'stopped', '["test"]', '测试环境节点', 'admin');
 
+
+-- MLOps模型制品登记表（V1.3.0）
+CREATE TABLE IF NOT EXISTS XnetMLops.xnet_mlops_mtp_model_artifact (
+ id BIGINT PRIMARY KEY AUTO_INCREMENT, uid VARCHAR(36) NOT NULL UNIQUE, output_name VARCHAR(255) NOT NULL, framework VARCHAR(64) NOT NULL, domain_name VARCHAR(128) NOT NULL, team_uid VARCHAR(36) NOT NULL, team_name VARCHAR(255), tenant_uid VARCHAR(36) NOT NULL, dept_uid VARCHAR(36), user_id VARCHAR(64) NOT NULL, description VARCHAR(500), artifact_path VARCHAR(512), created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP, updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP, UNIQUE KEY uk_model_artifact_tenant_name (tenant_uid, output_name), KEY idx_model_artifact_tenant (tenant_uid) );

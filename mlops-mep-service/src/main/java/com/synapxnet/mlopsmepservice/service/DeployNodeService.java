@@ -6,12 +6,13 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
-import java.io.BufferedReader;
-import java.io.InputStreamReader;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.time.LocalDateTime;
-import java.util.*;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -20,14 +21,17 @@ public class DeployNodeService {
 
     private final DeployNodeMapper deployNodeMapper;
 
+    /** 查询全部模型部署节点。 */
     public List<DeployNode> findAll() {
         return deployNodeMapper.findAll();
     }
 
+    /** 按数据库主键查询模型部署节点。 */
     public DeployNode findById(Long id) {
         return deployNodeMapper.findById(id);
     }
 
+    /** 创建部署节点，并使用真实 TCP 探测初始化连通状态。 */
     public DeployNode create(DeployNode node) {
         node.setUid(UUID.randomUUID().toString());
         node.setStatus("offline");
@@ -40,38 +44,30 @@ public class DeployNodeService {
         return deployNodeMapper.findById(node.getId());
     }
 
+    /** 更新部署节点的用户可编辑信息，不覆盖运行时核验结果。 */
     public DeployNode update(DeployNode node) {
         node.setUpdatedAt(LocalDateTime.now());
         deployNodeMapper.update(node);
         return deployNodeMapper.findById(node.getId());
     }
 
+    /** 删除指定部署节点。 */
     public void delete(Long id) {
         deployNodeMapper.deleteById(id);
     }
 
+    /** 测试节点 SSH 端口连通性，不伪造 Docker 或 Nginx 运行状态。 */
     public Map<String, Object> testConnection(String ipAddress, Integer port) {
         try {
-            Socket socket = new Socket();
-            socket.connect(new InetSocketAddress(ipAddress, port != null ? port : 22), 5000);
-            socket.close();
-
-            String dockerVersion = getDockerVersion(ipAddress);
-
-            return Map.of(
-                "success", true,
-                "message", "连接成功",
-                "docker_version", dockerVersion != null ? dockerVersion : "未检测到"
-            );
+            probeTcpConnectivity(ipAddress, port != null ? port : 22);
+            return connectionResult(true, "连接成功；Docker 与 Nginx 状态需由受控运行时探针核验");
         } catch (Exception e) {
             log.error("测试节点连接失败: {}", e.getMessage());
-            return Map.of(
-                "success", false,
-                "message", "连接失败: " + e.getMessage()
-            );
+            return connectionResult(false, "连接失败: " + e.getMessage());
         }
     }
 
+    /** 刷新节点 TCP 连通状态，并保留数据库中已有的真实运行时核验值。 */
     public DeployNode refreshStatus(Long id) {
         DeployNode node = deployNodeMapper.findById(id);
         if (node == null) {
@@ -79,46 +75,23 @@ public class DeployNodeService {
         }
 
         try {
-            Socket socket = new Socket();
-            socket.connect(new InetSocketAddress(node.getIpAddress(), node.getPort()), 5000);
-            socket.close();
-
-            String dockerVersion = getDockerVersion(node.getIpAddress());
-            String nginxStatus = checkNginxStatus(node.getIpAddress()) ? "running" : "stopped";
-
-            deployNodeMapper.updateStatus(id, "online", dockerVersion, nginxStatus);
+            probeTcpConnectivity(node.getIpAddress(), node.getPort());
+            deployNodeMapper.updateConnectivityStatus(id, "online");
         } catch (Exception e) {
             log.warn("节点 {} 不可达: {}", node.getName(), e.getMessage());
-            deployNodeMapper.updateStatus(id, "offline", null, "stopped");
+            deployNodeMapper.updateConnectivityStatus(id, "offline");
         }
 
         return deployNodeMapper.findById(id);
     }
 
+    /** 返回已持久化资源容量；没有真实采集器时明确返回不可用状态。 */
+    /** 尚未接入资源采集器时拒绝伪造指标。Reject fabricated metrics without a resource collector. */
     public Map<String, Object> getResources(Long id) {
-        DeployNode node = deployNodeMapper.findById(id);
-        if (node == null || !"online".equals(node.getStatus())) {
-            return Map.of(
-                "cpu_usage", 0,
-                "memory_usage", 0,
-                "memory_total", 0,
-                "disk_usage", 0,
-                "disk_total", 0,
-                "containers_running", 0
-            );
-        }
-
-        Random random = new Random();
-        return Map.of(
-            "cpu_usage", random.nextInt(80) + 10,
-            "memory_usage", random.nextInt((int)(node.getMemoryGb() * 0.8)) + 1,
-            "memory_total", node.getMemoryGb(),
-            "disk_usage", random.nextInt(400) + 100,
-            "disk_total", 500,
-            "containers_running", random.nextInt(10) + 1
-        );
+        throw new DeploymentRuntimeUnavailableException();
     }
 
+    /** 切换节点维护状态，同时保留最近一次运行时核验信息。 */
     public void setMaintenance(Long id, Boolean maintenance) {
         DeployNode node = deployNodeMapper.findById(id);
         if (node != null) {
@@ -127,11 +100,25 @@ public class DeployNodeService {
         }
     }
 
-    private String getDockerVersion(String ipAddress) {
-        return "24.0.7";
+    /** 在限定超时内探测指定 TCP 端口，成功后正常返回。 */
+    private void probeTcpConnectivity(String ipAddress, Integer port) throws Exception {
+        if (ipAddress == null || ipAddress.isBlank()) {
+            throw new IllegalArgumentException("节点 IP 地址不能为空");
+        }
+        int resolvedPort = port != null ? port : 22;
+        try (Socket socket = new Socket()) {
+            socket.connect(new InetSocketAddress(ipAddress, resolvedPort), 5000);
+        }
     }
 
-    private boolean checkNginxStatus(String ipAddress) {
-        return true;
+    /** 构造允许 runtime 元数据为空的连接测试结果。 */
+    private Map<String, Object> connectionResult(boolean success, String message) {
+        Map<String, Object> result = new LinkedHashMap<>();
+        result.put("success", success);
+        result.put("message", message);
+        result.put("docker_version", null);
+        result.put("nginx_status", null);
+        result.put("runtime_verified", false);
+        return result;
     }
 }

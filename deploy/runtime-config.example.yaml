@@ -1,0 +1,27 @@
+# Copyright (C) 2026 Synapxnet. All rights reserved.
+# Synapxnet Proprietary and Confidential. Explicit authorization is required for copying, distribution or use.
+# Kubernetes 非敏感运行配置 / Kubernetes non-secret runtime configuration.
+# Author: maoyo | Department: 研发部 | Date: 2026-10-23 | Version: 1.0.0
+# Security Level: INTERNAL | Maintainer: maoyo | Email: synapxnet@gmail.com
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: xnet-mlops-runtime
+  namespace: xnet-mlops
+data:
+  # 根据真实依赖修改后应用。 Replace dependency hosts before applying.
+  DB_HOST: replace-with-mysql-host
+  DB_PORT: "3306"
+  XNET_LOGIN_BASE_URL: http://xnet-mlops-login:8181
+  REDIS_HOST: replace-with-redis-host
+  REDIS_PORT: "6379"
+  HDFS_HOST: replace-with-hdfs-host
+  HDFS_PORT: "8020"
+  JENKINS_HOST: replace-with-jenkins-host
+  JENKINS_PORT: "8080"
+  DPP_SERVICE_URL: http://xnet-mlops-dpp-service:8182
+  MTP_SERVICE_URL: http://xnet-mlops-mtp-service:8183
+  MEP_SERVICE_URL: http://mlops-mep-service:8184
+  SMP_SERVICE_URL: http://xnet-mlops-smp-service:8185
+  OPENXNET_REHEARSAL_ENABLED: "false"
+  # 不在 ConfigMap 中存放密钥。 Store credentials in xnet-mlops-secrets, never in this ConfigMap.

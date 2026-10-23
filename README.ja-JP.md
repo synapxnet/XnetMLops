@@ -1,115 +1,93 @@
-<div align="center">
+<!-- Copyright (C) 2026 Synapxnet. All rights reserved.
+Author: maoyo | Department: 研发部 | Date: 2026-10-23 | Version: 1.0.0 | Security Level: INTERNAL -->
 
-[简体中文](./README.md) | [English](./README.en-US.md) | **日本語**
+[简体中文](./README.md) · [English](./README.en-US.md) · **日本語**
 
 # XnetMLops
 
-**データ、学習、配備、リソース、エージェントを結ぶオープンソース MLOps**
+データ準備、モデル学習、配備、基盤リソース、エージェント協働をつなぐ MLOps プラットフォームです。本リポジトリはバックエンドサービスを提供し、対応する Web コンソールは独立してビルド・配備できます。
 
-[![GOAI release](https://img.shields.io/badge/GOAI_release-1.3.0-1677ff.svg)](https://github.com/synapxnet/XnetMLops/releases/tag/v1.3.0)
-[![Java](https://img.shields.io/badge/Java-17-e76f00.svg)](https://www.oracle.com/java/)
-[![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.4.6-6db33f.svg)](https://spring.io/projects/spring-boot)
-[![License](https://img.shields.io/badge/license-MIT-2ea44f.svg)](./LICENSE)
+[対応するリポジトリ](https://github.com/synapxnet/XnetMLops-web/tree/main) · [過去のリリース](https://github.com/synapxnet/XnetMLops/releases) · [SynapXnet コミュニティ](https://openxnet.synapxnet.com)
 
-[オンラインデモ](https://goai.xnetmlops.synapxnet.online) · [フロントエンド: XnetMLops-web](https://github.com/synapxnet/XnetMLops-web/tree/v1.3.0) · [OpenXnet](https://openxnet.synapxnet.com) · [ライセンス](./LICENSE)
+現在の開発ブランチは main です。常駐 Agent、Skill、モデル証拠、分野横断の復旧、人工承認、独立検証、冪等性、ロールバックを維持しています。接続先、実行環境、企業 ID は配備時に設定します。
 
-</div>
+## 機能モジュール
 
-## GOAI v1.3.0 — リリースとダウンロード
-
-既定の `display` ブランチは従来の展示用コードを保持しています。**GOAI v1.3.0 リリース**と決勝用ソースは以下から参照できます。この README 更新で本ブランチのアプリケーションコードは更新されません。
-
-**[リリース説明](https://github.com/synapxnet/XnetMLops/releases/tag/v1.3.0) · [ソース ZIP](https://github.com/synapxnet/XnetMLops/releases/download/v1.3.0/XnetMLops-v1.3.0-source.zip) · [v1.3.0 固定ソース](https://github.com/synapxnet/XnetMLops/tree/v1.3.0) · [プログラム検証基準の交付ガイド](https://github.com/synapxnet/XnetMLops/blob/c9cae0607fc6fba6b76b26d9da4ca1ace0ab13bc/docs/GOAI-FINALS-V1.3.0-SOURCE-DELIVERY.md)**
-
-[対応するフロントエンド v1.3.0](https://github.com/synapxnet/XnetMLops-web/releases/tag/v1.3.0) · [OpenXnet v1.3.0](https://github.com/synapxnet/OpenXnet/releases/tag/v1.3.0)
-
-GOAI 版はモデルの証拠・成果物の読み取り、Skill 候補照会、ワークフロー契約、メモリ使用を抑えた HDFS ダウンロードを提供します。MEP の制御付き実行は委任 ID、承認ダイジェスト、リソース版、冪等性を確認し、実行器未設定の操作を明示的に拒否します。
-
-[常駐 Agent ランタイム](https://github.com/synapxnet/OpenXnet/tree/c841ef841da8477fc312e27cd390aecac8ed2d7e/services/platform-resident-agent)は独立したプラットフォームサービスとして動作し、OpenXnet AgentTeams と協働します。プラットフォーム ID、モデル設定、委任権限の構成が必要です。既存アシスタントがあるだけで、常駐ランタイムの設定完了を意味しません。
-
-プログラム基準の検証結果：Maven Reactor 8 件のパッケージ化と隔離単体テスト 118 件が成功しました。外部サービス依存の Application/Integration テストは対象外で、移行 SQL は隔離 MySQL で未試行です。 リリースの公開はオンラインサービスの再配備や本番認証を意味しません。構成と制限は交付ガイドをご確認ください。
-
-プログラム検証の基準：[c9cae060](https://github.com/synapxnet/XnetMLops/commit/c9cae0607fc6fba6b76b26d9da4ca1ace0ab13bc)。GOAI リリースの以後の変更は README 文書のみです。改訂ソース ZIP の確認にはリリース添付のチェックサムを使用してください。
-
-> **以下は過去の画面画像です。** 展示用の参考画像であり、v1.3.0 の最新 UI 受入証跡や実環境での制御実行記録ではありません。
-
-![XnetMLops MLOps 分析センター](./docs/images/xnetmlops-analytics-2026.png)
+| モジュール | 機能 |
+| --- | --- |
+| DPP | データセット、前処理、特徴量、データ製品の取り込み、RAG |
+| MTP | アルゴリズム、即時・定期学習、ログ、成果物、モデル証拠 |
+| MEP | モデル・LLM サービス、API キー、ノード、制御付き配備とロールバック |
+| SMP | テナント、部門、チーム、データソース、ストレージ、計算資源 |
+| XAA | アシスタント、会話、ワークフロー、Skill 管理と取り込み |
+| 常駐協働 | プラットフォーム状態、知識・能力ワークスペース、タスクと証拠の関連付け |
 
 ## 画面プレビュー
 
-| データセット管理 | RAG ナレッジベース |
+以下は機能画面の例です。業務記録と実行状態は接続先環境から取得します。
+
+![XnetMLops](./docs/images/xnetmlops-analytics-2026.png)
+
+| DPP | MTP |
 | --- | --- |
-| ![データセット](./docs/images/xnetmlops-dpp-datasets.png) | ![RAG](./docs/images/xnetmlops-dpp-knowledge-base.png) |
-| 学習ジョブ | モデル配備 |
-| ![学習](./docs/images/xnetmlops-mtp-training.png) | ![配備](./docs/images/xnetmlops-mep-deployments.png) |
-| ワークステーション | エージェントワークフロー |
-| ![ワークステーション](./docs/images/xnetmlops-smp-workstations.png) | ![ワークフロー](./docs/images/xnetmlops-xaa-workflows.png) |
-| メタスキル | AI アシスタント |
-| ![スキル](./docs/images/xnetmlops-xaa-skills.png) | ![アシスタント](./docs/images/xnetmlops-xaa-assistants.png) |
-| デモログイン | プロジェクト情報 |
-| ![ログイン](./docs/images/xnetmlops-login.png) | ![プロジェクト情報](./docs/images/xnetmlops-about.png) |
+| ![DPP](./docs/images/xnetmlops-dpp-datasets.png) | ![MTP](./docs/images/xnetmlops-mtp-training.png) |
+| MEP | XAA |
+| ![MEP](./docs/images/xnetmlops-mep-deployments.png) | ![XAA](./docs/images/xnetmlops-xaa-workflows.png) |
 
-## 概要
+## 開発とビルド
 
-XnetMLops は **SynapXnet チーム**が公開するフルライフサイクル MLOps プラットフォームです。データ準備、モデル学習、配備、インフラリソース、RAG、エージェント編成を一つの工程として接続します。
+JDK 17、Maven 3.9+、MySQL 8.x、Redis を使用します。有効にする機能に合わせて HDFS、Jenkins、オブジェクトストレージ、学習・推論サービスを設定してください。
 
-本バックエンドと [XnetMLops-web](https://github.com/synapxnet/XnetMLops-web/tree/v1.3.0) は、企業向けマルチテナント、フロントエンド・バックエンド分離システムを構成します。DPP、MTP、MEP、SMP、XAA を独立したサービスとして提供します。
-
-## 特長
-
-- テナント、部門、チーム、ロール、リソースを横断するマルチテナント。
-- データセット、定期学習、モデル API、エージェントまでの一貫した工程。
-- フロントエンドとバックエンドを独立配備。
-- Hadoop、Jenkins、オブジェクトストレージ、Harbor、計算ノードと統合。
-- 学習、推論、RAG、エージェント、ドキュメントを継続改善。
-
-## モジュール
-
-| モジュール | サービス | 主な機能 |
-| --- | --- | --- |
-| DPP | `mlops-dpp-service` | データセット、前処理、特徴量、パイプライン、RAG |
-| MTP | `mlops-mtp-service` | アルゴリズム、即時・定期学習、パラメータ、ログ、成果物 |
-| MEP | `mlops-mep-service` | モデル配備、LLM、API キー、ノード、OpenClaw |
-| SMP | `mlops-smp-service` | テナント、チーム、データソース、ストレージ、計算資源 |
-| XAA | `mlops-xaa-service` | アシスタント、会話、ワークフロー、スキル、モジュール連携 |
-| Login | `mlops-login` | 認証と統一エントリ |
-
-## クイックスタート（v1.3.0）
-
-検証済み構成は JDK **17**、Spring Boot **3.4.6**、Maven **3.9+** です。実行には MySQL 8.x、Redis、および有効な機能が利用する HDFS/Jenkins/モデル実行環境が必要です。Compose だけでは初期化済み DB や学習クラスタは用意されません。
-
-```bash
-git clone --branch v1.3.0 --single-branch https://github.com/synapxnet/XnetMLops.git
+~~~bash
+git clone --branch main https://github.com/synapxnet/XnetMLops.git
 cd XnetMLops
 mvn -B -ntp -DskipTests package
-```
+~~~
 
-対応する `XnetMLops-web` v1.3.0 をビルドし、`.env.example` を保護されたローカル `.env` にコピーして、DB/Redis、HDFS、JWT、委任・承認サービスを設定してください。`WEB_DIST_PATH` は `../XnetMLops-web/apps/web-antd/dist` です。基礎 SQL と移行は交付ガイドを確認し、既存環境に破壊的な初期化を実行しないでください。移行 SQL は隔離 MySQL での試行が必要です。
+.env.example をローカルの .env にコピーし、DB、Redis、JWT、ストレージ、承認サービス、委任 ID を設定します。対応する Web コンソールをビルドし、WEB_DIST_PATH を apps/web-antd/dist に合わせます。既存 DB には確認済みの移行を適用してください。XnetMLops.sql は初期化用です。ゲートウェイ設定後、docker compose config --quiet で確認して必要なサービスを起動します。
 
-同梱 `nginx/default.conf` は `/api/login/`、`/api/dpp/` などを使い、公開 Web アプリの接頭辞とは異なります。**コンテナ起動前にゲートウェイとフロントエンドを整合**させ、Controller 接頭辞、組織認可、常駐 Agent・制御ツールの経路を維持してください。汎用 Compose/Nginx テンプレートは実稼働構成そのものではありません。設定後に `docker compose config --quiet` で検証し、`docker compose up -d --build` で起動します。下記のバックエンドポートは内部サービス用で、公開サイト URL ではありません。
+## 配備設定
 
-## デモ接続と API 経路
+企業の携帯番号と SMS のワンタイムコードでログインします。バックエンドに XNET_SMS_GATEWAY_URL と XNET_SMS_GATEWAY_TOKEN を設定します。未設定時は送信不可を明示します。有効期間は 5 分で、送信頻度と失敗回数を制限し、認証成功後にコードを消費します。
 
-- GOAI デモ：<https://goai.xnetmlops.synapxnet.online/#/auth/login>。
-- 公開デモアカウント：**`17870171303`**、確認コード：**`000000`**（デモ環境専用、プロジェクト管理者が公開を承認）。ログインは **11 桁の携帯番号と 6 桁の確認コード**を `POST /api/auth/login` に送信します。パスワード方式でも OpenXnet AgentTeams のアクセスコード入力でもありません。
-- 2026-09-18 の検証で、サイトは HTTP 200、タイトルは `XnetMLops` でした。認証後の `/api/resident/v1/status` は `platform=mlops`、`agentId=agt-mlops-resident-v130` を返し、未認証では 401 でした。これはプラットフォーム識別とアクセス制御の確認で、業務全体の再受入試験ではありません。
+常駐 Agent ランタイムは独立したサービスで、/api/resident/v1 経由で接続します。プラットフォーム ID、モデルサービス、委任権限が必要です。アシスタント、常駐ランタイム、プラットフォーム間協働は役割を分担します。組織ツリーは認証済みユーザーの所属で絞り込み、業務操作にはテナント・チーム権限と承認を適用します。
 
-Web API はデモと同じオリジンを使用します。
+モデル実行環境の URL、トークン、配備 UID、プローブ入力は環境設定から提供します。OPENXNET_MODEL_RESOURCE_BINDINGS と OPENXNET_FEATURE_DRIFT_RESOURCE_IDS で操作可能な資源を明示します。状態は実際のランタイムから再取得します。OPENXNET_REHEARSAL_ENABLED の既定値は false で、本番処理に合成演習結果を補いません。
 
-| サービス | フロントエンド API base | バックエンドのサービスポート |
+## API とゲートウェイ
+
+対応するフロントエンドは以下の同一オリジン API 接頭辞を使用します。nginx/default.conf は実際の Controller 経路に対応し、公式 Nginx エントリポイントで展開されます。配備環境の XNET_*_UPSTREAM アドレスを設定してください。
+
+| サービス | フロントエンド API 接頭辞 | 内部サービスポート |
 | --- | --- | --- |
-| Auth | `/api` | `8181` |
-| DPP | `/dpp` | `8182` |
-| MTP | `/mtp` | `8183` |
-| MEP | `/mep` | `8184` |
-| SMP | `/smp` | `8185` |
-| XAA | `/xaa` | `8186` |
+| Auth | /api | 8181 |
+| DPP | /dpp | 8182 |
+| MTP | /mtp | 8183 |
+| MEP | /mep | 8184 |
+| SMP | /smp | 8185 |
+| XAA | /xaa | 8186 |
+
+## 文書と貢献
+
+Issue と Pull Request を歓迎します。API・データ構造の変更には契約、権限範囲、移行手順を添えてください。過去のリリースは GitHub Releases に保持し、現在の文書は開発ブランチに合わせて更新します。
+
+- [Mainline configuration and migration](./docs/mainline/transition.md)
+- [DPP](./docs/DPP-Knowledge-Base.md) · [MTP](./docs/MTP-Knowledge-Base.md) · [MEP](./docs/MEP-Knowledge-Base.md) · [SMP](./docs/SMP-Knowledge-Base.md) · [XAA](./docs/XAA-Knowledge-Base.md)
+
+## ライセンス
+
+リポジトリの LICENSE と各ファイルの著作権表示に従ってください。フロントエンドは Vue Vben Admin を使用し、上流ライセンスを保持しています。 [LICENSE](./LICENSE)
+## データベースとゲートウェイの初期化
+
+新規データベースでは `XnetMLops.sql`、続いて `database/mainline-capabilities.sql` を実行します。後者はナレッジ、特徴量、インフラ、アシスタント、Skill、ワークフロー、監査の構造を追加し、繰り返し実行できます。デモのノード・ワークフロー・実行データは挿入しません。既存環境は事前にバックアップしてください。組織メンバーの `data_access_enabled` は既定で 0 です。確認済みのチームに明示的に権限を付与します。
+
+Nginx 公式エントリーポイントが環境変数から共有ゲートウェイ設定を生成します。`/api/` はログインサービスへそのまま転送し、`/dpp/`・`/mtp/`・`/smp/` は各サービスの `/api/` へ、`/mep/` はそのまま、`/xaa/` は `/api/xaa/` へ転送します。業務 API は組織認可、Agent API は委任トークンを検証します。公開するのはゲートウェイのみです。バックエンドはループバックにバインドし、Kubernetes も Web ゲートウェイのみ公開します。
+
+独立した常駐 Agent の URL は `XNET_RESIDENT_AGENT_URL`（末尾スラッシュなし）で設定します。未設定時は利用不可を明示します。`XNET_DNS_RESOLVER` は Docker で `127.0.0.11`、Kubernetes ではクラスター DNS を指定してください。
 
 
-常駐 API base は `/api/resident/v1` です。プラットフォームのログイン情報、常駐 Agent のモデルキー、OpenXnet AgentTeams のデモアクセスコードは別の認証情報です。機能の利用には引き続きテナント・チーム権限と実行承認が必要です。
+ナレッジベースのメタデータと既存記録は利用できます。内蔵バックエンドには文書処理・ベクトル検索実行器がなく、アップロード、再構築、検索は明示的な利用不可を返します。LLM の有効化・無効化は接続設定を管理し、実サービス状態は接続テストで確認します。学習、HDFS、Jenkins、駐在実行には実際の依存サービスが必要です。
 
-## コミュニティとライセンス
+Kubernetes は `xnet-mlops` 名前空間、`xnet-mlops-runtime` ConfigMap、`xnet-mlops-secrets` Secret を使用します。`deploy/runtime-config.example.yaml` の依存ホストを修正して適用してください。Secret には最低限 `DB_PASSWORD` と `JWT_SECRET` が必要です。SMS・委任の認証情報は機能に応じて追加し、ConfigMap に保存しないでください。イメージと取得認証は実環境に合わせます。MEP/XAA は 8184/8186 を使用し、ゲートウェイと整合しています。
 
-XnetMLops は [OpenXnet](https://openxnet.synapxnet.com) の一部です。
-
-[MIT License](./LICENSE) の下で公開されています。Copyright © 2026 SynapXnet.
+実際の特性ドリフト実行にトークンファイルを使う場合、`deploy/compose.feature-drift.example.yaml` の読み取り専用マウント、または `deploy/feature-drift-secret.patch.example.yaml` の Kubernetes Secret パッチを使用します。コンテナ内パスの設定だけではファイルは渡されません。Kubernetes で駐在サービスの名前解決を使う場合は、`xnet-mlops-runtime` に `XNET_RESIDENT_AGENT_URL` とクラスタの `XNET_DNS_RESOLVER` を設定してください。

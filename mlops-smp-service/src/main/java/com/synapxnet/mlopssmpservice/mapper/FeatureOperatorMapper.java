@@ -8,6 +8,28 @@ import java.util.Optional;
 @Mapper
 public interface FeatureOperatorMapper {
 
+    /** 明确保留下划线领域字段，兼容全局驼峰设置。 Explicitly map snake-case domain fields under the global camel-case setting. */
+    @Results(id = "featureOperatorResultMap", value = {
+            @Result(column = "id", property = "id", id = true),
+            @Result(column = "uid", property = "uid"),
+            @Result(column = "url", property = "url"),
+            @Result(column = "encrypted_token", property = "encrypted_token"),
+            @Result(column = "operator_name", property = "operator_name"),
+            @Result(column = "operator_code", property = "operator_code"),
+            @Result(column = "operator_version", property = "operator_version"),
+            @Result(column = "description", property = "description"),
+            @Result(column = "tenant_uid", property = "tenant_uid"),
+            @Result(column = "dept_uid", property = "dept_uid"),
+            @Result(column = "team_uid", property = "team_uid"),
+            @Result(column = "created_by", property = "created_by"),
+            @Result(column = "updated_by", property = "updated_by"),
+            @Result(column = "created_at", property = "created_at"),
+            @Result(column = "updated_at", property = "updated_at"),
+            @Result(column = "authorized_tenants", property = "authorized_tenants"),
+            @Result(column = "tenant_name", property = "tenant_name"),
+            @Result(column = "dept_name", property = "dept_name"),
+            @Result(column = "team_name", property = "team_name")
+    })
     @Select("SELECT f.*, " +
             "t.tenant_name AS tenant_name, " +
             "d.dept_name AS dept_name, " +
@@ -18,6 +40,7 @@ public interface FeatureOperatorMapper {
             "LEFT JOIN xnet_mlops_sys_team tm ON f.team_uid = tm.uid")
     List<FeatureOperator> selectAllWithOrgInfo();
 
+    @ResultMap("featureOperatorResultMap")
     @Select("SELECT f.*, " +
             "t.tenant_name AS tenant_name, " +
             "d.dept_name AS dept_name, " +
@@ -29,6 +52,7 @@ public interface FeatureOperatorMapper {
             "WHERE f.id = #{id}")
     Optional<FeatureOperator> findById(Long id);
 
+    @ResultMap("featureOperatorResultMap")
     @Select("SELECT f.*, " +
             "t.tenant_name AS tenant_name, " +
             "d.dept_name AS dept_name, " +
@@ -79,6 +103,7 @@ public interface FeatureOperatorMapper {
             @Param("operatorVersion") String operatorVersion,
             @Param("excludeId") Long excludeId);
 
+    @ResultMap("featureOperatorResultMap")
     @Select("<script>" +
             "SELECT f.*, " +
             "t.tenant_name AS tenant_name, " +
@@ -104,6 +129,7 @@ public interface FeatureOperatorMapper {
             @Param("operatorCode") String operatorCode,
             @Param("version") String version);
 
+    @ResultMap("featureOperatorResultMap")
     @Select("SELECT f.*, " +
             "t.tenant_name AS tenant_name, " +
             "d.dept_name AS dept_name, " +

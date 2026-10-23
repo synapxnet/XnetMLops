@@ -1,115 +1,93 @@
-<div align="center">
+<!-- Copyright (C) 2026 Synapxnet. All rights reserved.
+Author: maoyo | Department: 研发部 | Date: 2026-10-23 | Version: 1.0.0 | Security Level: INTERNAL -->
 
-[简体中文](./README.md) | **English** | [日本語](./README.ja-JP.md)
+[简体中文](./README.md) · **English** · [日本語](./README.ja-JP.md)
 
 # XnetMLops
 
-**Open-source MLOps connecting data, training, deployment, resources, and agents**
+An MLOps platform connecting data preparation, training, serving, infrastructure and agent collaboration. This repository contains backend services; the matching web console is built and deployed independently.
 
-[![GOAI release](https://img.shields.io/badge/GOAI_release-1.3.0-1677ff.svg)](https://github.com/synapxnet/XnetMLops/releases/tag/v1.3.0)
-[![Java](https://img.shields.io/badge/Java-17-e76f00.svg)](https://www.oracle.com/java/)
-[![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.4.6-6db33f.svg)](https://spring.io/projects/spring-boot)
-[![License](https://img.shields.io/badge/license-MIT-2ea44f.svg)](./LICENSE)
+[Matching repository](https://github.com/synapxnet/XnetMLops-web/tree/main) · [Historical releases](https://github.com/synapxnet/XnetMLops/releases) · [SynapXnet community](https://openxnet.synapxnet.com)
 
-[Live Demo](https://goai.xnetmlops.synapxnet.online) · [Frontend: XnetMLops-web](https://github.com/synapxnet/XnetMLops-web/tree/v1.3.0) · [OpenXnet](https://openxnet.synapxnet.com) · [License](./LICENSE)
-
-</div>
-
-## GOAI v1.3.0 — release and downloads
-
-This default `display` branch retains the earlier showcase code. The **GOAI v1.3.0 release** and current finals source are available through the links below; this documentation update does not upgrade this branch's application code.
-
-**[Release notes](https://github.com/synapxnet/XnetMLops/releases/tag/v1.3.0) · [Download source ZIP](https://github.com/synapxnet/XnetMLops/releases/download/v1.3.0/XnetMLops-v1.3.0-source.zip) · [Pinned v1.3.0 source](https://github.com/synapxnet/XnetMLops/tree/v1.3.0) · [Validated program baseline guide](https://github.com/synapxnet/XnetMLops/blob/c9cae0607fc6fba6b76b26d9da4ca1ace0ab13bc/docs/GOAI-FINALS-V1.3.0-SOURCE-DELIVERY.md)**
-
-[Matching frontend v1.3.0](https://github.com/synapxnet/XnetMLops-web/releases/tag/v1.3.0) · [OpenXnet v1.3.0](https://github.com/synapxnet/OpenXnet/releases/tag/v1.3.0)
-
-The GOAI release provides model evidence/artifact reads, Skill candidate queries, workflow contracts and bounded-memory HDFS downloads. MEP governed execution checks delegated identity, approval digests, resource versions and idempotency; actions without a configured executor fail explicitly.
-
-The [resident Agent runtime](https://github.com/synapxnet/OpenXnet/tree/c841ef841da8477fc312e27cd390aecac8ed2d7e/services/platform-resident-agent) runs as a separate platform service and cooperates with OpenXnet AgentTeams; it requires platform identity, model configuration and delegated permissions. The built-in assistant alone is not proof of a configured resident runtime.
-
-Program baseline validation: all 8 Maven Reactor projects packaged and 118 isolated unit tests passed. External Application/Integration tests were excluded; migration SQL has not been rehearsed against isolated MySQL. Publishing this version does not redeploy online services or certify production readiness. See the delivery guide for configuration and limitations.
-
-Program validation baseline: [c9cae060](https://github.com/synapxnet/XnetMLops/commit/c9cae0607fc6fba6b76b26d9da4ca1ace0ab13bc). The GOAI release's subsequent changes are limited to README documentation; use the release asset checksums for the revised source archive.
-
-> **Historical UI screenshots below:** these showcase images are retained for context. They are not the current v1.3.0 UI acceptance evidence or a record of live governance execution.
-
-![XnetMLops analytics center](./docs/images/xnetmlops-analytics-2026.png)
-
-## Product Tour
-
-| Dataset management | RAG knowledge base |
-| --- | --- |
-| ![Datasets](./docs/images/xnetmlops-dpp-datasets.png) | ![RAG knowledge base](./docs/images/xnetmlops-dpp-knowledge-base.png) |
-| Training jobs | Model deployments |
-| ![Training](./docs/images/xnetmlops-mtp-training.png) | ![Deployment](./docs/images/xnetmlops-mep-deployments.png) |
-| Workstations | Agent workflows |
-| ![Workstations](./docs/images/xnetmlops-smp-workstations.png) | ![Workflows](./docs/images/xnetmlops-xaa-workflows.png) |
-| Meta-skills | AI assistants |
-| ![Skills](./docs/images/xnetmlops-xaa-skills.png) | ![Assistants](./docs/images/xnetmlops-xaa-assistants.png) |
-| Demo login | About |
-| ![Login](./docs/images/xnetmlops-login.png) | ![About](./docs/images/xnetmlops-about.png) |
-
-## Overview
-
-XnetMLops is an open-source, full-lifecycle MLOps platform maintained by the **SynapXnet team**. It connects data preparation, model training, deployment, infrastructure resources, RAG, and agent orchestration into one engineering loop.
-
-This backend repository and [XnetMLops-web](https://github.com/synapxnet/XnetMLops-web/tree/v1.3.0) form an enterprise-grade, multi-tenant, frontend/backend-separated system. DPP, MTP, MEP, SMP, and XAA are delivered as focused microservices.
-
-## Highlights
-
-- Enterprise multi-tenancy across tenants, departments, teams, roles, and resources.
-- Complete flow from datasets and scheduled training to model APIs and agents.
-- Independent frontend and backend delivery.
-- Integration with Hadoop, Jenkins, object storage, Harbor, and compute nodes.
-- Continuous improvements to training, serving, RAG, agents, and documentation.
+The active development branch is main. Resident agents, Skills, model evidence, cross-domain recovery, human approval, independent verification, idempotency and rollback remain available. Deployments supply their own endpoints, runtime configuration and enterprise identities.
 
 ## Modules
 
-| Module | Service | Responsibility |
-| --- | --- | --- |
-| DPP | `mlops-dpp-service` | Datasets, preprocessing, feature engineering, pipelines, RAG, and Jenkins jobs |
-| MTP | `mlops-mtp-service` | Algorithms, immediate/scheduled training, parameters, logs, and artifacts |
-| MEP | `mlops-mep-service` | Model deployments, LLM services, API keys, nodes, logs, and OpenClaw |
-| SMP | `mlops-smp-service` | Tenants, teams, data sources, storage, workstations, Hadoop, Jenkins, Harbor, and images |
-| XAA | `mlops-xaa-service` | Assistants, conversations, visual workflows, skills, and cross-module orchestration |
-| Login | `mlops-login` | Authentication and the unified platform entry |
+| Module | Capability |
+| --- | --- |
+| DPP | Datasets, preprocessing, features, data-product import and RAG knowledge bases |
+| MTP | Algorithms, immediate and scheduled training, logs, artifacts and model evidence |
+| MEP | Model and LLM services, API keys, nodes, governed deployment and rollback |
+| SMP | Tenants, departments, teams, data sources, storage and compute resources |
+| XAA | Assistants, conversations, visual workflows, Skill management and import |
+| Resident collaboration | Platform status, knowledge and capability workspaces, linked tasks and evidence |
 
-## Quick start (v1.3.0)
+## Product tour
 
-The verified backend uses JDK **17**, Spring Boot **3.4.6** and Maven **3.9+**. Runtime dependencies include MySQL 8.x, Redis and the HDFS/Jenkins/model runtimes used by enabled modules. Compose does not supply a complete initialized database or training cluster.
+These images illustrate product interfaces; records and runtime status come from the connected environment.
 
-```bash
-git clone --branch v1.3.0 --single-branch https://github.com/synapxnet/XnetMLops.git
+![XnetMLops](./docs/images/xnetmlops-analytics-2026.png)
+
+| DPP | MTP |
+| --- | --- |
+| ![DPP](./docs/images/xnetmlops-dpp-datasets.png) | ![MTP](./docs/images/xnetmlops-mtp-training.png) |
+| MEP | XAA |
+| ![MEP](./docs/images/xnetmlops-mep-deployments.png) | ![XAA](./docs/images/xnetmlops-xaa-workflows.png) |
+
+## Development and build
+
+Use JDK 17, Maven 3.9+, MySQL 8.x and Redis. Configure HDFS, Jenkins, object storage, training and inference services for the modules you enable.
+
+~~~bash
+git clone --branch main https://github.com/synapxnet/XnetMLops.git
 cd XnetMLops
 mvn -B -ntp -DskipTests package
-```
+~~~
 
-Build the matching `XnetMLops-web` v1.3.0 first. Copy `.env.example` to a protected local `.env` and configure database/Redis, HDFS, JWT, delegation and approval service settings. Set `WEB_DIST_PATH` to `../XnetMLops-web/apps/web-antd/dist`. Review the base SQL and migrations in the delivery guide; do not run a destructive database initialization against an existing environment. Migration SQL still requires an isolated MySQL rehearsal.
+Copy .env.example to a local .env and configure the database, Redis, JWT, storage, approval service and delegated platform identity. Build the matching web console and point WEB_DIST_PATH to its apps/web-antd/dist directory. Use reviewed migrations for existing databases; XnetMLops.sql is an initialization script. After configuring the gateway, run docker compose config --quiet before starting the required services.
 
-The checked-in `nginx/default.conf` routes `/api/login/`, `/api/dpp/` and other `/api/<service>/` prefixes, while the published web app uses the prefixes listed below. **Align the gateway and frontend configuration before starting containers**; preserve controller path prefixes, organization authorization and resident/governed-tool routes. The generic Compose/Nginx templates are not the current live deployment configuration. After completing these prerequisites, validate with `docker compose config --quiet`, then use `docker compose up -d --build`. Backend ports below are service ports, not public website addresses.
+## Deployment configuration
 
-## Demo access and API routes
+Login uses an enterprise mobile number and a one-time SMS code. Configure XNET_SMS_GATEWAY_URL and XNET_SMS_GATEWAY_TOKEN on the backend; sending is explicitly unavailable without a gateway. Codes expire after five minutes, have send and attempt limits, and are consumed after successful verification.
 
-- GOAI demo: <https://goai.xnetmlops.synapxnet.online/#/auth/login>.
-- Public demo account: **`17870171303`**; verification code: **`000000`** (demo environment only, publication authorized by the project owner). Login uses an **11-digit mobile number and a 6-digit verification code** through `POST /api/auth/login`; it is not a password login or the OpenXnet AgentTeams access-code field.
-- On 2026-09-18, the site returned HTTP 200 with title `XnetMLops`. An authenticated read of `/api/resident/v1/status` returned `platform=mlops` and `agentId=agt-mlops-resident-v130`; the same read without login returned 401. This verifies platform identity and access control, not a new full business-flow acceptance.
+The resident agent runtime is a separate platform service exposed through /api/resident/v1. Configure its platform identity, model provider and delegated permissions. Assistants, resident runtimes and cross-platform orchestration have distinct responsibilities. Organization trees are filtered by authenticated membership; business requests retain tenant, team and approval boundaries.
 
-All web API routes use the same origin as the demo:
+Environment configuration supplies model runtime URLs, tokens, deployment UIDs and probe inputs. OPENXNET_MODEL_RESOURCE_BINDINGS and OPENXNET_FEATURE_DRIFT_RESOURCE_IDS explicitly identify permitted resources. State must be read from the actual runtime. OPENXNET_REHEARSAL_ENABLED defaults to false; production flows do not substitute synthetic rehearsal results.
 
-| Service | Frontend API base | Backend service port |
+## API and gateway
+
+The matching frontend uses these same-origin API prefixes. nginx/default.conf matches the actual controller paths and is rendered by the official Nginx entrypoint. Configure the XNET_*_UPSTREAM addresses for your deployment.
+
+| Service | Frontend API prefix | Internal backend port |
 | --- | --- | --- |
-| Auth | `/api` | `8181` |
-| DPP | `/dpp` | `8182` |
-| MTP | `/mtp` | `8183` |
-| MEP | `/mep` | `8184` |
-| SMP | `/smp` | `8185` |
-| XAA | `/xaa` | `8186` |
+| Auth | /api | 8181 |
+| DPP | /dpp | 8182 |
+| MTP | /mtp | 8183 |
+| MEP | /mep | 8184 |
+| SMP | /smp | 8185 |
+| XAA | /xaa | 8186 |
+
+## Documentation and contributions
+
+Issues and pull requests are welcome. API and data changes should include contracts, permission boundaries and migration instructions. Historical releases remain in GitHub Releases; current documentation follows the development branch.
+
+- [Mainline configuration and migration](./docs/mainline/transition.md)
+- [DPP](./docs/DPP-Knowledge-Base.md) · [MTP](./docs/MTP-Knowledge-Base.md) · [MEP](./docs/MEP-Knowledge-Base.md) · [SMP](./docs/SMP-Knowledge-Base.md) · [XAA](./docs/XAA-Knowledge-Base.md)
+
+## License
+
+Follow the repository LICENSE and per-file copyright notices. The frontend uses Vue Vben Admin and retains its upstream license. [LICENSE](./LICENSE)
+## Database and gateway initialization
+
+For a new database, apply `XnetMLops.sql` followed by `database/mainline-capabilities.sql`. The latter adds all knowledge, feature, infrastructure, assistant, Skill, workflow and governed execution tables idempotently, without demonstration nodes, workflows or run data. Back up existing databases before applying the capability migration. Organization membership defaults to `data_access_enabled=0`; grant access explicitly for verified teams.
+
+The official Nginx entrypoint renders the shared gateway template from environment variables. `/api/` preserves the login path; `/dpp/`, `/mtp/` and `/smp/` map to `/api/` on their services; `/mep/` preserves its path; `/xaa/` maps to `/api/xaa/`. Business APIs require organization authorization, while Agent APIs validate delegated credentials. Only the gateway is public; backend ports bind to loopback. Kubernetes publishes only the web gateway Ingress.
+
+Set `XNET_RESIDENT_AGENT_URL` to the independent resident service base URL without a trailing slash. An unconfigured resident service returns an explicit unavailable response. Set `XNET_DNS_RESOLVER` to your DNS resolver (Docker default `127.0.0.11`; use the cluster DNS in Kubernetes).
 
 
-The resident API base is `/api/resident/v1`. Platform login, resident model-provider keys and OpenXnet AgentTeams demo access codes are different credentials. Subsequent feature calls remain subject to tenant/team permissions and execution approval.
+Knowledge-base metadata and existing records remain available. The built-in backend has no document/vector processing executor; upload, rebuild and retrieval return explicit unavailability. LLM enable/disable controls connection configuration; connection tests independently check external service health. Training, HDFS, Jenkins and resident execution require actual dependencies and never synthesize success when unconfigured.
 
-## Community and License
+Kubernetes manifests use the `xnet-mlops` namespace, `xnet-mlops-runtime` ConfigMap and `xnet-mlops-secrets` Secret. Update dependency hosts in `deploy/runtime-config.example.yaml` before applying it. The Secret requires `DB_PASSWORD` and `JWT_SECRET`; add SMS and delegation credentials for enabled capabilities. Never store credentials in the ConfigMap. Replace image addresses and pull credentials with your registry. Service names and ports match the frontend gateway; MEP/XAA use 8184/8186.
 
-XnetMLops is part of [OpenXnet](https://openxnet.synapxnet.com). Issues and pull requests are welcome.
-
-Released under the [MIT License](./LICENSE). Copyright © 2026 SynapXnet.
+For real feature-drift token files, use the optional read-only mount in `deploy/compose.feature-drift.example.yaml` or the Kubernetes Secret patch `deploy/feature-drift-secret.patch.example.yaml`; setting a container path alone does not provide the file. Kubernetes resident DNS requires both `XNET_RESIDENT_AGENT_URL` and the cluster `XNET_DNS_RESOLVER` in `xnet-mlops-runtime`.

@@ -1,6 +1,7 @@
 package com.synapxnet.mlopssmpservice.entity;
 
 import lombok.Data;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import java.util.Date;
 
 @Data
@@ -8,6 +9,8 @@ public class AlgorithmRepository {
     private Long id;
     private String uid;
     private String url;
+    /** 密文只用于后端操作，不随列表或详情返回。 Keep encrypted credentials in backend operations, never list/detail responses. */
+    @JsonProperty(access = JsonProperty.Access.WRITE_ONLY)
     private byte[] encrypted_token;
     private String algorithm;
     private String algorithm_version;

@@ -56,11 +56,12 @@ public class BucketService {
 
     @Transactional
     public Bucket saveBucket(Bucket bucket) {
-        boolean isNew = bucket.getId() == null;
+        boolean isNew = bucket.getId() == null || bucket.getId() <= 0;
 
         // 设置公共字段
         Date now = new Date();
         if (isNew) {
+            bucket.setId(null);
             bucket.setUid(UUID.randomUUID().toString());
             bucket.setCreated_at(now);
             bucket.setStatus("active");
@@ -133,10 +134,13 @@ public class BucketService {
         existingBucket.setTenant_uid(bucketDetails.getTenant_uid());
         existingBucket.setDept_uid(bucketDetails.getDept_uid());
         existingBucket.setTeam_uid(bucketDetails.getTeam_uid());
-        existingBucket.setCurrent_size(bucketDetails.getCurrent_size());
-        existingBucket.setMax_size(bucketDetails.getMax_size());
+        // 用量来自存储采集，不允许配置编辑覆盖。 Preserve measured usage during configuration edits.
+        if (bucketDetails.getMax_size() != null) existingBucket.setMax_size(bucketDetails.getMax_size());
         existingBucket.setStatus(bucketDetails.getStatus());
-        existingBucket.setAccess_key(bucketDetails.getAccess_key());
+        // 只写凭据在读取时被隐藏，空值代表保持原凭据。 Omitted write-only credentials preserve the stored value.
+        if (bucketDetails.getAccess_key() != null && !bucketDetails.getAccess_key().isBlank()) {
+            existingBucket.setAccess_key(bucketDetails.getAccess_key());
+        }
         existingBucket.setAuthorized_tenants(bucketDetails.getAuthorized_tenants());
         existingBucket.setUpdated_at(new Date());
 

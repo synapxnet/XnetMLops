@@ -158,6 +158,6 @@ INSERT INTO `xnet_mlops_mep_llm_service` (`uid`, `name`, `type`, `description`, 
 
 -- 示例部署节点
 INSERT INTO `xnet_mlops_mep_deploy_node` (`uid`, `name`, `ip_address`, `port`, `status`, `cpu_cores`, `memory_gb`, `gpu_info`, `docker_version`, `nginx_status`, `labels`, `description`, `created_by`) VALUES
-('node-001', 'GPU节点-01', '127.0.0.1', 22, 'online', 32, 64, 'NVIDIA RTX 4090 x2', '24.0.7', 'running', '["gpu", "production"]', '生产环境GPU计算节点', 'admin'),
-('node-002', 'CPU节点-01', '127.0.0.1', 22, 'online', 16, 32, NULL, '24.0.7', 'running', '["cpu", "production"]', '生产环境CPU计算节点', 'admin'),
-('node-003', '测试节点-01', '127.0.0.1', 22, 'offline', 8, 16, NULL, '23.0.6', 'stopped', '["test"]', '测试环境节点', 'admin');
+('node-001', 'GPU节点-01', '192.168.10.101', 22, 'online', 32, 64, 'NVIDIA RTX 4090 x2', '24.0.7', 'running', '["gpu", "production"]', '生产环境GPU计算节点', 'admin'),
+('node-002', 'CPU节点-01', '192.168.10.102', 22, 'online', 16, 32, NULL, '24.0.7', 'running', '["cpu", "production"]', '生产环境CPU计算节点', 'admin'),
+('node-003', '测试节点-01', '192.168.10.103', 22, 'offline', 8, 16, NULL, '23.0.6', 'stopped', '["test"]', '测试环境节点', 'admin');

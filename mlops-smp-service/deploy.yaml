@@ -20,11 +20,17 @@ spec:
         - name: harbor
       containers:
         - name: xnet-mlops-smp-service
-          image: 127.0.0.1/xnet-mlops/xnet-mlops-smp-service:${BUILD_NUMBER}
+          image: 192.168.10.132/xnet-mlops/xnet-mlops-smp-service:${BUILD_NUMBER}
           ports:
             - name: tcp-8185
               containerPort: 8185
               protocol: TCP
+          # 运行环境与凭据由集群配置注入。 Inject runtime settings and credentials from cluster configuration.
+          envFrom:
+            - configMapRef:
+                name: xnet-mlops-runtime
+            - secretRef:
+                name: xnet-mlops-secrets
           resources:
             limits:
               cpu: "50"
@@ -85,23 +91,3 @@ spec:
       targetPort: 8185
       name: tcp-8185
   type: ClusterIP
----
-apiVersion: networking.k8s.io/v1
-kind: Ingress
-metadata:
-  name: xnet-mlops-smp-service-ingress
-  namespace: xnet-mlops
-  annotations:
-    kubernetes.io/ingress.class: "nginx"
-    nginx.ingress.kubernetes.io/rewrite-target: /
-spec:
-  rules:
-    - http:
-        paths:
-          - path: /smp
-            pathType: Prefix
-            backend:
-              service:
-                name: xnet-mlops-smp-service
-                port:
-                  number: 8185

@@ -24,6 +24,17 @@ public class Dataset {
     private String team_uid;
     private String team_name;
     private String description;
+    private String sourcePlatform;
+    private String sourceProductName;
+    private String sourceProductVersion;
+    private String sourceUri;
+    private Long rowCount;
+    private Long byteSize;
+    private String schemaDigestSha256;
+    private String artifactDigestSha256;
+    private String lineageReference;
+    private String importStatus;
+    private Date importedAt;
     private Date created_at;
     private Date updated_at;
     private int level;

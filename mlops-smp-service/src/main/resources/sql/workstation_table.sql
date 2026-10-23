@@ -55,4 +55,4 @@ CREATE TABLE IF NOT EXISTS xnet_mlops_smp_workstation (
 
 -- 插入初始数据示例（可选）
 -- INSERT INTO smp_workstation (uid, name, vendor, server_type, region, os_type, os_version, ip_address, ssh_user, auth_type)
--- VALUES (UUID(), '测试服务器', 'tencent', 'cvm', 'guangzhou', 'linux', 'OpenCloudOS 9', '127.0.0.1', 'root', 'password');
+-- VALUES (UUID(), '测试服务器', 'tencent', 'cvm', 'guangzhou', 'linux', 'OpenCloudOS 9', '192.168.1.100', 'root', 'password');

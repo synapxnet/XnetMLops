@@ -16,8 +16,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
+import java.io.FileNotFoundException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -131,6 +130,7 @@ public class DatasetManagerController {
         }
     }
 
+    /** 首块验证后流式写出数据集，响应关闭时释放独立连接。 / Stream the preflighted dataset and release its isolated connection when the response closes. */
     @GetMapping("/download")
     public ResponseEntity<InputStreamResource> downloadFile(
             @PathVariable("datasetId") Long datasetId,
@@ -138,28 +138,11 @@ public class DatasetManagerController {
         try {
             String datasetRootPath = buildDatasetRootPath(datasetId);
 
-            // 如果传入的路径已经包含数据集根路径，则直接使用；否则拼接
-            String fullPath;
-            if (filePath.startsWith(datasetRootPath)) {
-                fullPath = filePath;
-            } else if (filePath.startsWith("/")) {
-                fullPath = datasetRootPath + filePath;
-            } else {
-                fullPath = datasetRootPath + "/" + filePath;
-            }
-
-            logger.info("下载文件: 传入路径={}, 完整路径={}", filePath, fullPath);
-
-            ByteArrayOutputStream outputStream = datasetManagerService.downloadFileFromHdfs(fullPath);
-            byte[] data = outputStream.toByteArray();
-            InputStreamResource resource = new InputStreamResource(new ByteArrayInputStream(data));
-
-            String fileName = fullPath.substring(fullPath.lastIndexOf('/') + 1);
-
-            return ResponseEntity.ok()
-                    .contentType(MediaType.APPLICATION_OCTET_STREAM)
-                    .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + fileName + "\"")
-                    .body(resource);
+            return datasetManagerService.downloadFileFromHdfs(datasetRootPath, filePath).response();
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(null);
+        } catch (FileNotFoundException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(null);
         } catch (RuntimeException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(null);
         } catch (Exception e) {

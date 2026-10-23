@@ -55,6 +55,17 @@ public interface SkillMapper {
     List<Skill> selectPublishedByCategory(@Param("category") String category);
 
     /**
+     * 按创建主体查询 OpenXnet 企业候选。
+     *
+     * @param creatorId 已认证用户主体
+     * @param category 可选技能分类
+     * @return 当前主体可见的候选草稿
+     */
+    List<Skill> selectOpenXnetCandidatesByCreator(
+            @Param("creatorId") String creatorId,
+            @Param("category") String category);
+
+    /**
      * 搜索技能
      */
     List<Skill> search(@Param("keyword") String keyword, @Param("category") String category);

@@ -18,42 +18,81 @@ public interface JenkinsMasterMapper {
     /**
      * 查询所有Master节点
      */
+    /** 明确保留下划线领域字段，兼容全局驼峰设置。 Explicitly map snake-case domain fields under the global camel-case setting. */
+    @Results(id = "jenkinsMasterResultMap", value = {
+            @Result(column = "id", property = "id", id = true),
+            @Result(column = "uid", property = "uid"),
+            @Result(column = "name", property = "name"),
+            @Result(column = "host", property = "host"),
+            @Result(column = "port", property = "port"),
+            @Result(column = "username", property = "username"),
+            @Result(column = "encrypted_password", property = "encrypted_password"),
+            @Result(column = "os_type", property = "os_type"),
+            @Result(column = "jenkins_port", property = "jenkins_port"),
+            @Result(column = "jenkins_home", property = "jenkins_home"),
+            @Result(column = "jenkins_version", property = "jenkins_version"),
+            @Result(column = "java_version", property = "java_version"),
+            @Result(column = "java_opts", property = "java_opts"),
+            @Result(column = "admin_username", property = "admin_username"),
+            @Result(column = "encrypted_admin_password", property = "encrypted_admin_password"),
+            @Result(column = "credentials_config", property = "credentials_config"),
+            @Result(column = "status", property = "status"),
+            @Result(column = "initial_password", property = "initial_password"),
+            @Result(column = "deploy_log", property = "deploy_log"),
+            @Result(column = "last_heartbeat", property = "last_heartbeat"),
+            @Result(column = "region", property = "region"),
+            @Result(column = "cpu_cores", property = "cpu_cores"),
+            @Result(column = "ram_gb", property = "ram_gb"),
+            @Result(column = "disk_gb", property = "disk_gb"),
+            @Result(column = "tenant_uid", property = "tenant_uid"),
+            @Result(column = "description", property = "description"),
+            @Result(column = "created_by", property = "created_by"),
+            @Result(column = "updated_by", property = "updated_by"),
+            @Result(column = "created_at", property = "created_at"),
+            @Result(column = "updated_at", property = "updated_at")
+    })
     @Select("SELECT * FROM xnet_mlops_smp_jenkins_masters ORDER BY created_at DESC")
     List<JenkinsMaster> findAll();
 
     /**
      * 根据ID查询
      */
+    @ResultMap("jenkinsMasterResultMap")
     @Select("SELECT * FROM xnet_mlops_smp_jenkins_masters WHERE id = #{id}")
     Optional<JenkinsMaster> findById(Long id);
 
     /**
      * 根据UID查询
      */
+    @ResultMap("jenkinsMasterResultMap")
     @Select("SELECT * FROM xnet_mlops_smp_jenkins_masters WHERE uid = #{uid}")
     Optional<JenkinsMaster> findByUid(String uid);
 
     /**
      * 根据名称查询
      */
+    @ResultMap("jenkinsMasterResultMap")
     @Select("SELECT * FROM xnet_mlops_smp_jenkins_masters WHERE name = #{name}")
     Optional<JenkinsMaster> findByName(String name);
 
     /**
      * 根据主机和端口查询
      */
+    @ResultMap("jenkinsMasterResultMap")
     @Select("SELECT * FROM xnet_mlops_smp_jenkins_masters WHERE host = #{host} AND jenkins_port = #{jenkinsPort}")
     Optional<JenkinsMaster> findByHostAndJenkinsPort(@Param("host") String host, @Param("jenkinsPort") Integer jenkinsPort);
 
     /**
      * 根据状态查询
      */
+    @ResultMap("jenkinsMasterResultMap")
     @Select("SELECT * FROM xnet_mlops_smp_jenkins_masters WHERE status = #{status} ORDER BY created_at DESC")
     List<JenkinsMaster> findByStatus(String status);
 
     /**
      * 查询已部署且运行中的Master节点
      */
+    @ResultMap("jenkinsMasterResultMap")
     @Select("SELECT * FROM xnet_mlops_smp_jenkins_masters WHERE status IN ('deployed', 'running') ORDER BY created_at DESC")
     List<JenkinsMaster> findDeployedMasters();
 

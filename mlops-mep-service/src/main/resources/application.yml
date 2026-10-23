@@ -7,7 +7,7 @@ spring:
   datasource:
     url: jdbc:mysql://${DB_HOST:localhost}:${DB_PORT:3306}/XnetMLops?useSSL=false&serverTimezone=UTC
     username: root
-    password: ${DB_PASSWORD:}
+    password: ${DB_PASSWORD}
     driver-class-name: com.mysql.cj.jdbc.Driver
 
 mybatis:
@@ -40,3 +40,28 @@ logging:
   level:
     com.synapxnet.mlopsmepservice: DEBUG
     org.springframework.web: INFO
+
+# 委派与审批配置，缺少密钥时拒绝执行。 / Delegation and approval fail closed without credentials.
+openxnet:
+  rehearsal:
+    enabled: ${OPENXNET_REHEARSAL_ENABLED:false}
+  agent:
+    delegation-secret: ${OPENXNET_AGENT_DELEGATION_SECRET:}
+    audience: ${OPENXNET_AGENT_AUDIENCE:openxnet-agent-adapter}
+  approval:
+    base-url: ${OPENXNET_APPROVAL_BASE_URL:http://127.0.0.1:3456}
+    service-token: ${OPENXNET_APPROVAL_SERVICE_TOKEN:}
+
+# 未配置运行时只连接本机不可用端点，不能伪造运行结果。 / Unconfigured runtimes cannot fabricate execution results.
+xnet:
+  recommendation:
+    runtime-url: ${RECOMMENDATION_RUNTIME_URL:}
+    deployment-uid: ${RECOMMENDATION_DEPLOYMENT_UID:}
+    probe-dataset-ref: ${RECOMMENDATION_PROBE_DATASET_REF:}
+    probe-request: ${RECOMMENDATION_PROBE_REQUEST:}
+    expected-algorithm-id: ${RECOMMENDATION_EXPECTED_ALGORITHM_ID:}
+    expected-product-version: ${RECOMMENDATION_EXPECTED_PRODUCT_VERSION:}
+  quantitative:
+    runtime-url: ${QUANTITATIVE_RUNTIME_URL:}
+    deployment-uid: ${QUANTITATIVE_DEPLOYMENT_UID:}
+    runtime-token: ${QUANTITATIVE_RUNTIME_TOKEN:}

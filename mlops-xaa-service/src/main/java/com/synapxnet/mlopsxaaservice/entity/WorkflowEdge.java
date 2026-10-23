@@ -22,6 +22,9 @@ public class WorkflowEdge {
      */
     private Long sourceNodeId;
 
+    /** 保存图时的画布UID，不作为数据库列。Canvas UID for graph saves, not a database column. */
+    private String sourceNodeUid;
+
     /**
      * 源节点的输出端口
      */
@@ -31,6 +34,9 @@ public class WorkflowEdge {
      * 目标节点ID
      */
     private Long targetNodeId;
+
+    /** 保存图时的画布UID，不作为数据库列。Canvas UID for graph saves, not a database column. */
+    private String targetNodeUid;
 
     /**
      * 目标节点的输入端口

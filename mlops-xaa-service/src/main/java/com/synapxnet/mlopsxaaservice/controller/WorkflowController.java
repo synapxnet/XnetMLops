@@ -185,21 +185,22 @@ public class WorkflowController {
         }
     }
 
-    /**
-     * 保存工作流图（节点和边）
-     */
+    /** 类型化反序列化节点和边，避免将 JSON 对象强转为实体。 Deserialize graph entities without casting JSON maps. */
+    public record GraphRequest(List<WorkflowNode> nodes, List<WorkflowEdge> edges) {}
+
+    /** 保存经类型检查的工作流图。 Save a typed workflow graph. */
     @PostMapping("/workflows/{id}/graph")
     public ResponseEntity<Map<String, Object>> saveWorkflowGraph(
             @PathVariable Long id,
-            @RequestBody Map<String, Object> graphData) {
+            @RequestBody GraphRequest graphData) {
         try {
-            @SuppressWarnings("unchecked")
-            List<WorkflowNode> nodes = (List<WorkflowNode>) graphData.get("nodes");
-            @SuppressWarnings("unchecked")
-            List<WorkflowEdge> edges = (List<WorkflowEdge>) graphData.get("edges");
-
-            workflowService.saveWorkflowGraph(id, nodes, edges);
+            if (graphData.nodes() == null || graphData.edges() == null) {
+                return ResponseEntity.badRequest().body(Map.of("code", 400, "message", "节点和连线列表不能为空"));
+            }
+            workflowService.saveWorkflowGraph(id, graphData.nodes(), graphData.edges());
             return ResponseUtils.success("工作流图保存成功", "null");
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(Map.of("code", 400, "message", e.getMessage()));
         } catch (Exception e) {
             return ResponseUtils.error(500, "保存工作流图失败: " + e.getMessage());
         }

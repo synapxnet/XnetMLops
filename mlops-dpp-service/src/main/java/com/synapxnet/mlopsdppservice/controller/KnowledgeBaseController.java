@@ -6,6 +6,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.HashMap;
 import java.util.List;
@@ -99,7 +100,7 @@ public class KnowledgeBaseController {
     @GetMapping("/knowledge-bases/{kbId}/documents/{docId}")
     public ResponseEntity<Map<String, Object>> getDocument(
             @PathVariable("kbId") Long kbId, @PathVariable("docId") Long docId) {
-        KBDocument doc = knowledgeBaseService.findDocument(docId);
+        KBDocument doc = knowledgeBaseService.findDocument(kbId, docId);
         if (doc == null) {
             return error(404, "文档不存在");
         }
@@ -144,34 +145,21 @@ public class KnowledgeBaseController {
     public ResponseEntity<Map<String, Object>> retrieve(
             @PathVariable("kbId") Long kbId,
             @RequestBody Map<String, Object> request) {
-        // TODO: 实现实际的向量检索逻辑
-        Map<String, Object> response = new HashMap<>();
-        response.put("results", List.of());
-        response.put("totalLatencyMs", 0);
-        response.put("embeddingLatencyMs", 0);
-        response.put("retrievalLatencyMs", 0);
-        return success(response);
+        throw knowledgeBaseService.processingUnavailable();
     }
 
     @PostMapping("/knowledge-bases/{kbId}/retrieve/test")
     public ResponseEntity<Map<String, Object>> retrieveTest(
             @PathVariable("kbId") Long kbId,
             @RequestBody Map<String, Object> request) {
-        // TODO: 实现测试检索逻辑
-        Map<String, Object> response = new HashMap<>();
-        response.put("results", List.of());
-        response.put("totalLatencyMs", 0);
-        response.put("embeddingLatencyMs", 0);
-        response.put("retrievalLatencyMs", 0);
-        return success(response);
+        throw knowledgeBaseService.processingUnavailable();
     }
 
     @GetMapping("/knowledge-bases/{kbId}/retrieval-logs")
     public ResponseEntity<Map<String, Object>> getRetrievalLogs(
             @PathVariable("kbId") Long kbId,
             @RequestParam(value = "limit", required = false, defaultValue = "100") Integer limit) {
-        // TODO: 实现检索日志查询
-        return success(List.of());
+        throw knowledgeBaseService.processingUnavailable();
     }
 
     // ==================== 嵌入模型管理 ====================
@@ -212,10 +200,14 @@ public class KnowledgeBaseController {
     public ResponseEntity<Map<String, Object>> testEmbeddingModel(
             @PathVariable("id") Long id,
             @RequestBody Map<String, String> request) {
-        // TODO: 实现嵌入模型测试
-        Map<String, Object> response = new HashMap<>();
-        response.put("embedding", new float[0]);
-        response.put("latencyMs", 0);
-        return success(response);
+        throw knowledgeBaseService.processingUnavailable();
     }
+    /** 返回真实能力不可用或目标不存在的结构化状态。 Return structured unavailable or missing-target responses. */
+    @ExceptionHandler(ResponseStatusException.class)
+    public ResponseEntity<Map<String, Object>> handleUnavailable(ResponseStatusException exception) {
+        return ResponseEntity.status(exception.getStatusCode()).body(Map.of(
+                "code", exception.getStatusCode().value(),
+                "message", exception.getReason() == null ? "知识库操作暂不可用" : exception.getReason()));
+    }
+
 }

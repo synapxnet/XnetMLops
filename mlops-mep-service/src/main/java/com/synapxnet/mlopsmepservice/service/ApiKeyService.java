@@ -85,7 +85,12 @@ public class ApiKeyService {
         return result;
     }
 
+    /** 保留独立管理的启停状态，允许清空有效期和配额。 Preserve lifecycle state and allow clearing expiry and quota. */
     public ApiKey update(ApiKey apiKey) {
+        ApiKey current = apiKeyMapper.findById(apiKey.getId());
+        if (current == null) throw new IllegalArgumentException("API Key不存在");
+        if (apiKey.getName() == null) apiKey.setName(current.getName());
+        apiKey.setStatus(current.getStatus());
         // 名称唯一性检查（排除自身）
         if (apiKey.getName() != null) {
             ApiKey existing = apiKeyMapper.findByName(apiKey.getName());

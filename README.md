@@ -1,175 +1,93 @@
-<div align="center">
+<!-- Copyright (C) 2026 Synapxnet. All rights reserved.
+Author: maoyo | Department: 研发部 | Date: 2026-10-23 | Version: 1.0.0 | Security Level: INTERNAL -->
 
-**简体中文** | [English](./README.en-US.md) | [日本語](./README.ja-JP.md)
+**简体中文** · [English](./README.en-US.md) · [日本語](./README.ja-JP.md)
 
 # XnetMLops
 
-**连接数据处理、模型训练、部署服务与智能体编排的开源 MLOps 平台**
+连接数据准备、模型训练、部署服务、基础资源和智能体协作的 MLOps 平台。本仓库提供后端微服务；配套 Web 控制台可独立构建和部署。
 
-[![GOAI release](https://img.shields.io/badge/GOAI_release-1.3.0-1677ff.svg)](https://github.com/synapxnet/XnetMLops/releases/tag/v1.3.0)
-[![Java](https://img.shields.io/badge/Java-17-e76f00.svg)](https://www.oracle.com/java/)
-[![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.4.6-6db33f.svg)](https://spring.io/projects/spring-boot)
-[![License](https://img.shields.io/badge/license-MIT-2ea44f.svg)](./LICENSE)
+[配套仓库](https://github.com/synapxnet/XnetMLops-web/tree/main) · [历史发行](https://github.com/synapxnet/XnetMLops/releases) · [SynapXnet 社区](https://openxnet.synapxnet.com)
 
-[在线体验](https://goai.xnetmlops.synapxnet.online) · [前端仓库 XnetMLops-web](https://github.com/synapxnet/XnetMLops-web/tree/v1.3.0) · [OpenXnet 开源社区](https://openxnet.synapxnet.com) · [查看许可](./LICENSE)
+当前开发主线为 main。平台保留驻场 Agent、Skill、模型证据、跨域恢复、人工审批、独立验证、幂等控制与回滚能力。运行环境、平台地址和企业身份由部署配置提供。
 
-</div>
+## 功能模块
 
-## GOAI v1.3.0 发布与下载
-
-当前默认 `display` 分支保留原展示代码。**GOAI v1.3.0 发布版**及决赛源码请通过下方入口获取；本次 README 更新不代表默认分支业务代码已升级。
-
-**[发布说明](https://github.com/synapxnet/XnetMLops/releases/tag/v1.3.0) · [下载源码 ZIP](https://github.com/synapxnet/XnetMLops/releases/download/v1.3.0/XnetMLops-v1.3.0-source.zip) · [v1.3.0 固定源码](https://github.com/synapxnet/XnetMLops/tree/v1.3.0) · [程序验证基线交付文档](https://github.com/synapxnet/XnetMLops/blob/c9cae0607fc6fba6b76b26d9da4ca1ace0ab13bc/docs/GOAI-FINALS-V1.3.0-SOURCE-DELIVERY.md)**
-
-[配套前端 v1.3.0](https://github.com/synapxnet/XnetMLops-web/releases/tag/v1.3.0) · [OpenXnet v1.3.0](https://github.com/synapxnet/OpenXnet/releases/tag/v1.3.0)
-
-GOAI 版包含模型证据/制品读取、Skill 候选查询、工作流契约和有界内存 HDFS 下载。MEP 受控执行检查委派身份、审批摘要、资源版本和幂等约束；未配置执行器的操作明确返回不可用。
-
-[驻场 Agent 运行时](https://github.com/synapxnet/OpenXnet/tree/c841ef841da8477fc312e27cd390aecac8ed2d7e/services/platform-resident-agent)作为独立平台服务运行，与 OpenXnet AgentTeams 协同，需要配置平台身份、模型服务与委派权限；已有智能助手不代表驻场运行时已经配置完成。
-
-程序基线验证：8 个 Maven Reactor 打包成功，118 项隔离单测通过；外部服务 Application/Integration 测试未执行，迁移 SQL 尚未在隔离 MySQL 试跑。 发布版本不代表重新部署线上，也不等于生产认证；环境配置与限制以交付文档为准。
-
-程序验证基线：[c9cae060](https://github.com/synapxnet/XnetMLops/commit/c9cae0607fc6fba6b76b26d9da4ca1ace0ab13bc)。GOAI 发行在此之后仅修订 README 文档；更新后的源码 ZIP 请按发布附件中的校验值核对。
-
-> **下方均为历史界面截图：** 保留作为展示参考，不代表 v1.3.0 最新 UI 验收结果，也不是实时治理执行证据。
-
-![XnetMLops MLOps 分析中心](./docs/images/xnetmlops-analytics-2026.png)
+| 模块 | 能力 |
+| --- | --- |
+| DPP 数据处理 | 数据集、预处理、特征工程、数据产品导入、RAG 知识库 |
+| MTP 模型训练 | 算法、即时与定时训练、日志、模型产物和证据 |
+| MEP 模型部署 | 模型与 LLM 服务、API 密钥、部署节点、受控发布与回滚 |
+| SMP 系统管理 | 租户、部门、团队、数据源、存储和计算资源 |
+| XAA 智能体 | 助手、会话、可视化工作流、Skill 管理与导入 |
+| 驻场协作 | 平台状态、知识与能力工作台、跨平台任务及证据关联 |
 
 ## 界面预览
 
-以下界面由配套前端仓库 [XnetMLops-web](https://github.com/synapxnet/XnetMLops-web/tree/v1.3.0) 提供，展示数据来自 `demo/showcase_data.sql`。
+以下为功能界面示例；业务记录和运行状态由所连接的环境提供。
 
-### DPP 数据处理
+![XnetMLops](./docs/images/xnetmlops-analytics-2026.png)
 
-| 数据集管理 | RAG 知识库 |
+| DPP | MTP |
 | --- | --- |
-| ![XnetMLops 数据集管理](./docs/images/xnetmlops-dpp-datasets.png) | ![XnetMLops RAG 知识库](./docs/images/xnetmlops-dpp-knowledge-base.png) |
+| ![DPP](./docs/images/xnetmlops-dpp-datasets.png) | ![MTP](./docs/images/xnetmlops-mtp-training.png) |
+| MEP | XAA |
+| ![MEP](./docs/images/xnetmlops-mep-deployments.png) | ![XAA](./docs/images/xnetmlops-xaa-workflows.png) |
 
-### MTP 模型训练与 MEP 模型部署
+## 开发与构建
 
-| 训练任务 | 模型部署 |
-| --- | --- |
-| ![XnetMLops 训练任务](./docs/images/xnetmlops-mtp-training.png) | ![XnetMLops 模型部署](./docs/images/xnetmlops-mep-deployments.png) |
+使用 JDK 17、Maven 3.9+、MySQL 8.x 和 Redis。按所启用的业务模块配置 HDFS、Jenkins、对象存储、模型计算与推理服务。
 
-### SMP 系统管理与 XAA 智能体
-
-| 工作站资源 | 智能体工作流 |
-| --- | --- |
-| ![XnetMLops 工作站资源](./docs/images/xnetmlops-smp-workstations.png) | ![XnetMLops 智能体工作流](./docs/images/xnetmlops-xaa-workflows.png) |
-
-| 元技能仓库 | 智能助手 |
-| --- | --- |
-| ![XnetMLops 元技能仓库](./docs/images/xnetmlops-xaa-skills.png) | ![XnetMLops 智能助手](./docs/images/xnetmlops-xaa-assistants.png) |
-
-### 演示入口与项目信息
-
-| 演示登录 | 关于项目 |
-| --- | --- |
-| ![XnetMLops 演示登录](./docs/images/xnetmlops-login.png) | ![XnetMLops 关于项目](./docs/images/xnetmlops-about.png) |
-
-## 项目简介
-
-XnetMLops 是由 **SynapXnet 团队**开源的全流程 MLOps 平台，面向机器学习、生成式 AI 与智能体应用，将数据准备、模型训练、模型部署、资源管理和智能体编排连接为可持续迭代的工程闭环。
-
-本仓库是平台后端，与 [XnetMLops-web](https://github.com/synapxnet/XnetMLops-web/tree/v1.3.0) 前端仓库共同组成企业级、多租户、前后端分离系统。平台以独立微服务承载 DPP、MTP、MEP、SMP 与 XAA 五个核心业务域，可以对接 Hadoop、Jenkins、对象存储、镜像仓库与模型推理节点。
-
-## 项目优势
-
-- **企业多租户**：通过租户、部门、团队、角色和资源边界支撑多角色协作。
-- **前后端分离**：Web 控制台与后端服务独立交付，便于企业集成和二次开发。
-- **全流程闭环**：连接数据处理、定时训练、模型部署、推理服务与智能体编排。
-- **开放式集成**：可对接 Hadoop、Jenkins、对象存储、Harbor 与模型计算节点。
-- **持续更新**：SynapXnet 团队会持续完善训练调度、模型服务、RAG、智能体与文档。
-
-## 核心能力
-
-| 模块 | 服务目录 | 说明 |
-| --- | --- | --- |
-| DPP 数据处理 | `mlops-dpp-service` | 管理数据集、预处理与特征工程，编排定时数据管道；支持 RAG 知识库与 Jenkins 执行集成 |
-| MTP 模型训练 | `mlops-mtp-service` | 管理算法与训练任务，配置数据集、变量和运行参数；支持立即或定时训练，并跟踪训练状态、日志与模型产物 |
-| MEP 模型部署 | `mlops-mep-service` | 管理模型部署、LLM 服务、API 密钥、部署节点和运行日志，并支持 OpenClaw 实例管理 |
-| SMP 系统管理 | `mlops-smp-service` | 管理租户、部门、团队、数据源、存储桶、工作站以及 Hadoop、Jenkins、Harbor、镜像和算子资源 |
-| XAA 智能体 | `mlops-xaa-service` | 创建智能体助手，管理会话与消息，通过可视化工作流、技能和编排能力调用 DPP、MTP 与 MEP |
-| Login 认证服务 | `mlops-login` | 提供登录认证和平台访问入口，为多模块协作提供统一身份基础 |
-
-## 典型工作流
-
-```mermaid
-flowchart LR
-    Data["原始数据"] --> DPP["DPP 数据处理"]
-    DPP --> Dataset["数据集 / 特征 / RAG 知识库"]
-    Dataset --> MTP["MTP 即时或定时训练"]
-    MTP --> Artifact["模型产物"]
-    Artifact --> MEP["MEP 模型与 LLM 服务"]
-    MEP --> API["推理 API"]
-    XAA["XAA 智能体编排"] --> DPP
-    XAA --> MTP
-    XAA --> MEP
-    SMP["SMP 资源与租户"] --> DPP
-    SMP --> MTP
-    SMP --> MEP
-```
-
-后端基于 Java 17、Spring Boot 3.4.6 与 Maven 多模块工程构建，使用 MySQL 和 Redis 保存平台数据，并通过 Hadoop、Jenkins、Harbor 等外部系统执行数据处理、训练和制品交付任务。
-
-## 目录结构
-
-```text
-XnetMLops/
-├── mlops-dpp-service/    # 数据处理与 RAG 知识库
-├── mlops-mtp-service/    # 模型训练
-├── mlops-mep-service/    # 模型部署与推理服务
-├── mlops-smp-service/    # 租户和基础资源管理
-├── mlops-xaa-service/    # 智能体与工作流编排
-├── mlops-login/          # 登录认证
-├── docs/                 # 专题文档与项目图片
-├── nginx/                # 反向代理配置
-├── XnetMLops.sql         # 数据库初始化脚本
-└── docker-compose.yml    # 容器编排
-```
-
-## 快速开始（v1.3.0）
-
-已验证后端使用 JDK **17**、Spring Boot **3.4.6**、Maven **3.9+**。运行依赖 MySQL 8.x、Redis，以及启用模块使用的 HDFS/Jenkins/模型运行环境；Compose 不会自动提供完整初始化数据库或训练集群。
-
-```bash
-git clone --branch v1.3.0 --single-branch https://github.com/synapxnet/XnetMLops.git
+~~~bash
+git clone --branch main https://github.com/synapxnet/XnetMLops.git
 cd XnetMLops
 mvn -B -ntp -DskipTests package
-```
+~~~
 
-先构建配套 `XnetMLops-web` v1.3.0，将 `.env.example` 复制为受保护的本地 `.env`，配置数据库/Redis、HDFS、JWT、委派鉴权及审批服务；`WEB_DIST_PATH` 指向 `../XnetMLops-web/apps/web-antd/dist`。基础 SQL 与迁移按交付文档审阅，不能对已有环境执行清库初始化。迁移 SQL 仍需在隔离 MySQL 试跑。
+将 .env.example 复制为本地 .env，配置数据库、Redis、JWT、存储、审批服务和平台委派身份。先构建配套前端，WEB_DIST_PATH 指向其 apps/web-antd/dist。现有数据库使用经审阅的迁移脚本；XnetMLops.sql 是初始化脚本。完成网关配置后运行 docker compose config --quiet，再启动所需服务。
 
-仓库 `nginx/default.conf` 使用 `/api/login/`、`/api/dpp/` 等路由，和发布前端的前缀不同。**启动容器前必须对齐网关与前端配置**，保留 Controller 前缀、组织鉴权、驻场 Agent 与受控工具路由。通用 Compose/Nginx 模板不等同于当前线上部署配置。完成配置后先运行 `docker compose config --quiet`，再运行 `docker compose up -d --build`。下表的后端端口是服务端口，不是公开网站地址。
+## 部署配置
 
-## 演示接入与 API 路由
+登录使用企业手机号与短信网关签发的一次性验证码。后端配置 XNET_SMS_GATEWAY_URL 和 XNET_SMS_GATEWAY_TOKEN；未配置时发送服务明确不可用。验证码五分钟有效、限频发送、限制错误次数，成功验证后消费。
 
-- GOAI 演示入口：<https://goai.xnetmlops.synapxnet.online/#/auth/login>。
-- 公开演示手机号：**`17870171303`**；验证码：**`000000`**（仅限演示环境，已由项目方确认并授权公开）。登录方式为 **11 位手机号 + 6 位验证码**，提交到 `POST /api/auth/login`；不是密码登录，也不是 OpenXnet AgentTeams 的演示访问码输入框。
-- 2026-09-18 只读核验：入口 HTTP 200、标题 `XnetMLops`；登录后读取 `/api/resident/v1/status` 返回 `platform=mlops`、`agentId=agt-mlops-resident-v130`，未登录读取为 401。该检查证明平台身份和访问控制，不代表重新完成全业务流程验收。
+驻场 Agent 运行时作为独立平台服务接入 /api/resident/v1，需配置平台身份、模型服务及委派权限。助手、驻场运行时和跨平台协作保留各自职责。组织树按已认证用户的成员关系过滤，业务请求继续受租户、团队与审批边界约束。
 
-Web API 均使用演示入口的同源地址：
+模型运行时地址、令牌、部署 UID 和探针由环境配置。OPENXNET_MODEL_RESOURCE_BINDINGS 与 OPENXNET_FEATURE_DRIFT_RESOURCE_IDS 明确可操作资源；实际状态必须由运行时回读。OPENXNET_REHEARSAL_ENABLED 默认 false，生产流程不会自动填入合成演练结果。
 
-| 服务 | 前端 API base | 后端服务端口 |
+## API 与网关
+
+配套前端默认使用以下同源 API 前缀。nginx/default.conf 已匹配实际 Controller 路径；使用官方 Nginx 入口模板，根据部署设置 XNET_*_UPSTREAM 上游地址。
+
+| 服务 | 前端 API 前缀 | 后端内部端口 |
 | --- | --- | --- |
-| Auth | `/api` | `8181` |
-| DPP | `/dpp` | `8182` |
-| MTP | `/mtp` | `8183` |
-| MEP | `/mep` | `8184` |
-| SMP | `/smp` | `8185` |
-| XAA | `/xaa` | `8186` |
+| Auth | /api | 8181 |
+| DPP | /dpp | 8182 |
+| MTP | /mtp | 8183 |
+| MEP | /mep | 8184 |
+| SMP | /smp | 8185 |
+| XAA | /xaa | 8186 |
+
+## 文档与贡献
+
+欢迎通过 Issue 与 Pull Request 提交改进。接口或数据结构变更应附带契约、权限和迁移说明。历史发行保留在 GitHub Releases，当前开发文档与主线代码同步维护。
+
+- [Mainline configuration and migration](./docs/mainline/transition.md)
+- [DPP](./docs/DPP-Knowledge-Base.md) · [MTP](./docs/MTP-Knowledge-Base.md) · [MEP](./docs/MEP-Knowledge-Base.md) · [SMP](./docs/SMP-Knowledge-Base.md) · [XAA](./docs/XAA-Knowledge-Base.md)
+
+## 许可
+
+请遵守仓库 LICENSE 及各文件的版权声明。前端使用 Vue Vben Admin，并保留其上游许可。 [LICENSE](./LICENSE)
+## 数据库与网关初始化
+
+新建数据库依次执行 `XnetMLops.sql` 和 `database/mainline-capabilities.sql`。后者补齐知识库、特征算子、工作站、Jenkins、Hadoop、助手、Skill、工作流与治理审计结构，支持重复执行，不导入演示节点、工作流或运行数据。已有数据库先备份，再执行能力结构脚本；组织成员的 `data_access_enabled` 默认为 0，按实际团队显式授权。
+
+Compose 挂载 Nginx 模板，启动时注入各服务上游地址。前端与后端网关模板保持同一契约：`/api/` → 登录原路径，`/dpp/`、`/mtp/`、`/smp/` → 对应服务 `/api/`，`/mep/` → MEP 原路径，`/xaa/` → `/api/xaa/`。普通业务接口均先做组织权限校验；Agent 工具保留委派令牌校验。公开入口仅为网关，后端端口默认绑定本机回环地址。Kubernetes 同样只发布网页网关 Ingress。
+
+独立驻场服务通过 `XNET_RESIDENT_AGENT_URL` 配置（完整协议与地址，不带末尾斜杠），未配置时驻场页明确显示服务不可用。域名解析使用 `XNET_DNS_RESOLVER`，Docker 默认 `127.0.0.11`，Kubernetes 应设置集群 DNS 地址。
 
 
-驻场 API base 为 `/api/resident/v1`。平台登录凭据、驻场 Agent 的模型服务密钥、OpenXnet AgentTeams 演示访问码是三类不同配置；业务操作仍受租户/团队权限和执行审批约束。
+知识库管理和已有记录可用；当前内置后端尚无文档处理与向量检索执行器，上传、重建和检索返回明确不可用状态。LLM 服务的启用/停用控制连接配置，外部服务健康由连接测试核验。训练、HDFS、Jenkins 和驻场执行需要连接实际依赖，未配置时不会生成成功结果。
 
-## SynapXnet 开源生态
+Kubernetes 清单使用 `xnet-mlops` 命名空间、`xnet-mlops-runtime` ConfigMap 和 `xnet-mlops-secrets` Secret。先调整 `deploy/runtime-config.example.yaml` 中的依赖主机并应用配置；Secret 至少需要 `DB_PASSWORD`、`JWT_SECRET`，短信及委派令牌按启用能力添加。不要把密钥写入 ConfigMap。镜像地址与拉取凭据应改为自己的镜像仓库。服务名、端口与前端网关已配套；MEP/XAA 分别使用 8184/8186。
 
-XnetMLops 是 SynapXnet 开源体系的 AI 工程平台。更多团队项目、技术方向与社区动态请访问 [OpenXnet](https://openxnet.synapxnet.com)。
-
-## 参与贡献
-
-欢迎通过 Issue 提交缺陷与需求，或通过 Pull Request 贡献新算子、训练适配、部署后端和智能体能力。涉及数据结构或外部服务契约的变更，请同时提供迁移说明。
-
-## 开源许可
-
-本项目基于 [MIT License](./LICENSE) 开源。你可以自由使用、修改和分发本项目，但须保留原始版权与许可声明。
+真实特征漂移运行时使用令牌文件时，Compose 叠加 `deploy/compose.feature-drift.example.yaml` 并设置宿主文件路径；Kubernetes 使用 `deploy/feature-drift-secret.patch.example.yaml` 的 Secret 只读挂载示例。仅设置容器内路径不会传入文件。启用 Kubernetes 驻场域名时，在 `xnet-mlops-runtime` 同时设置 `XNET_RESIDENT_AGENT_URL` 和集群 `XNET_DNS_RESOLVER`。

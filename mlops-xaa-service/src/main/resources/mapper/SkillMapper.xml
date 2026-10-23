@@ -68,6 +68,17 @@
         SELECT * FROM xnet_mlops_xaa_skill WHERE status = 'published' AND category = #{category} ORDER BY is_official DESC, install_count DESC, created_at DESC
     </select>
 
+    <select id="selectOpenXnetCandidatesByCreator" resultMap="SkillResultMap">
+        SELECT * FROM xnet_mlops_xaa_skill
+        WHERE status = 'draft'
+          AND uid LIKE 'OPENXNET-%'
+          AND creator_id = #{creatorId}
+        <if test="category != null and category != ''">
+            AND category = #{category}
+        </if>
+        ORDER BY updated_at DESC
+    </select>
+
     <select id="search" resultMap="SkillResultMap">
         SELECT * FROM xnet_mlops_xaa_skill
         WHERE status = 'published'

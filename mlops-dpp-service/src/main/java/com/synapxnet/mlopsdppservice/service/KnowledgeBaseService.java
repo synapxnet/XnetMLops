@@ -4,6 +4,8 @@ import com.synapxnet.mlopsdppservice.entity.*;
 import com.synapxnet.mlopsdppservice.mapper.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.server.ResponseStatusException;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -87,10 +89,23 @@ public class KnowledgeBaseService {
         knowledgeBaseMapper.deleteById(id);
     }
 
-    @Transactional
+    /** 未接入真实索引执行器前不改变索引状态。 Preserve index state until a real indexing executor is available. */
     public void rebuild(Long id) {
-        knowledgeBaseMapper.updateStatus(id, "indexing");
-        // TODO: 触发异步重建任务
+        requireKnowledgeBase(id);
+        throw processingUnavailable();
+    }
+
+    /** 显式拒绝尚未接入的处理能力。 Reject processing capabilities that have not been connected. */
+    public ResponseStatusException processingUnavailable() {
+        return new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE,
+                "知识库文档处理与向量检索服务尚未接入，请先配置处理服务；现有知识库和文档记录仍可查看。");
+    }
+
+    /** 校验知识库存在，避免错误写入不存在的目标。 Validate the knowledge-base target before any mutation. */
+    private void requireKnowledgeBase(Long id) {
+        if (knowledgeBaseMapper.findById(id) == null) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "知识库不存在");
+        }
     }
 
     public void updateStats(Long kbId) {
@@ -114,45 +129,24 @@ public class KnowledgeBaseService {
         return documentMapper.findById(docId);
     }
 
-    @Transactional
+    /** 未持久化文件和运行处理器时禁止伪造上传成功。 Never acknowledge an upload without durable storage and an actual processor. */
     public KBDocument uploadDocument(Long kbId, MultipartFile file, Integer customChunkSize, Integer customChunkOverlap) {
-        KBDocument doc = new KBDocument();
-        doc.setUid(UUID.randomUUID().toString());
-        doc.setKb_id(kbId);
-        doc.setName(file.getOriginalFilename());
-        doc.setOriginal_name(file.getOriginalFilename());
-        doc.setFile_size(file.getSize());
-        doc.setMime_type(file.getContentType());
-        doc.setStatus("pending");
-        doc.setProcess_progress(0);
-        doc.setSource_type("upload");
-        doc.setWord_count(0);
-        doc.setChar_count(0);
-        doc.setChunk_count(0);
-        doc.setToken_count(0);
+        requireKnowledgeBase(kbId);
+        throw processingUnavailable();
+    }
 
-        // 提取文件类型
-        String filename = file.getOriginalFilename();
-        if (filename != null && filename.contains(".")) {
-            doc.setType(filename.substring(filename.lastIndexOf(".") + 1).toLowerCase());
+    /** 按知识库限定文档，防止跨知识库读取或删除。 Scope document access to its owning knowledge base. */
+    public KBDocument findDocument(Long kbId, Long docId) {
+        KBDocument doc = documentMapper.findById(docId);
+        if (doc == null || !java.util.Objects.equals(kbId, doc.getKb_id())) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "文档不存在或不属于当前知识库");
         }
-
-        if (customChunkSize != null) doc.setCustom_chunk_size(customChunkSize);
-        if (customChunkOverlap != null) doc.setCustom_chunk_overlap(customChunkOverlap);
-
-        // TODO: 保存文件到存储系统
-        // doc.setFile_path(savedPath);
-
-        documentMapper.insert(doc);
-
-        // 触发异步处理任务
-        // TODO: processDocumentAsync(doc);
-
         return doc;
     }
 
     @Transactional
     public void deleteDocument(Long kbId, Long docId) {
+        findDocument(kbId, docId);
         // 删除分块
         chunkMapper.deleteByDocId(docId);
         // 删除文档
@@ -161,18 +155,16 @@ public class KnowledgeBaseService {
         updateStats(kbId);
     }
 
-    @Transactional
+    /** 重建不可用时保留已有分块及处理状态。 Preserve existing chunks and status when reindexing is unavailable. */
     public void reindexDocument(Long kbId, Long docId) {
-        // 删除现有分块
-        chunkMapper.deleteByDocId(docId);
-        // 更新状态
-        documentMapper.updateProcessStatus(docId, "processing", 0);
-        // TODO: 触发异步重新索引任务
+        findDocument(kbId, docId);
+        throw processingUnavailable();
     }
 
     // ==================== 分块管理 ====================
 
     public List<KBChunk> findChunks(Long kbId, Long docId) {
+        findDocument(kbId, docId);
         return chunkMapper.findByDocId(docId);
     }
 

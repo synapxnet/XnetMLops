@@ -10,7 +10,7 @@
     </parent>
     <groupId>com.synapxnet</groupId>
     <artifactId>mlops-smp-service</artifactId>
-    <version>1.0.0-SNAPSHOT</version>
+    <version>1.3.0</version>
     <name>mlops-smp-service</name>
     <description>mlops-smp-service</description>
 
@@ -35,6 +35,11 @@
         <surefire.version>3.5.3</surefire.version>
     </properties>
     <dependencies>
+        <dependency>
+            <groupId>com.h2database</groupId>
+            <artifactId>h2</artifactId>
+            <scope>test</scope>
+        </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-web</artifactId>

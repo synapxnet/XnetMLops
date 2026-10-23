@@ -8,6 +8,27 @@ import java.util.Optional;
 @Mapper
 public interface AlgorithmRepositoryMapper {
 
+    /** 明确保留下划线领域字段，兼容全局驼峰设置。 Explicitly map snake-case domain fields under the global camel-case setting. */
+    @Results(id = "algorithmRepositoryResultMap", value = {
+            @Result(column = "id", property = "id", id = true),
+            @Result(column = "uid", property = "uid"),
+            @Result(column = "url", property = "url"),
+            @Result(column = "encrypted_token", property = "encrypted_token"),
+            @Result(column = "algorithm", property = "algorithm"),
+            @Result(column = "algorithm_version", property = "algorithm_version"),
+            @Result(column = "description", property = "description"),
+            @Result(column = "tenant_uid", property = "tenant_uid"),
+            @Result(column = "dept_uid", property = "dept_uid"),
+            @Result(column = "team_uid", property = "team_uid"),
+            @Result(column = "created_by", property = "created_by"),
+            @Result(column = "updated_by", property = "updated_by"),
+            @Result(column = "created_at", property = "created_at"),
+            @Result(column = "updated_at", property = "updated_at"),
+            @Result(column = "authorized_tenants", property = "authorized_tenants"),
+            @Result(column = "tenant_name", property = "tenant_name"),
+            @Result(column = "dept_name", property = "dept_name"),
+            @Result(column = "team_name", property = "team_name")
+    })
     @Select("SELECT a.*, " +
             "t.tenant_name AS tenant_name, " +
             "d.dept_name AS dept_name, " +
@@ -18,6 +39,7 @@ public interface AlgorithmRepositoryMapper {
             "LEFT JOIN xnet_mlops_sys_team tm ON a.team_uid = tm.uid")
     List<AlgorithmRepository> selectAllWithOrgInfo();
 
+    @ResultMap("algorithmRepositoryResultMap")
     @Select("SELECT a.*, " +
             "t.tenant_name AS tenant_name, " +
             "d.dept_name AS dept_name, " +
@@ -29,6 +51,7 @@ public interface AlgorithmRepositoryMapper {
             "WHERE a.id = #{id}")
     Optional<AlgorithmRepository> findById(Long id);
 
+    @ResultMap("algorithmRepositoryResultMap")
     @Select("SELECT a.*, " +
             "t.tenant_name AS tenant_name, " +
             "d.dept_name AS dept_name, " +
@@ -79,6 +102,7 @@ public interface AlgorithmRepositoryMapper {
             @Param("excludeId") Long excludeId);
 
 
+    @ResultMap("algorithmRepositoryResultMap")
     @Select("<script>" +
             "SELECT a.*, " +
             "t.tenant_name AS tenant_name, " +

@@ -16,10 +16,10 @@
 | 模块名称 | SMP (Service Management Platform) 服务管理平台 |
 | 后端服务 | `mlops-smp-service` (Spring Boot 3.4.6, Java 17) |
 | 服务端口 | 8185 |
-| 数据库 | MySQL `XnetMLops` (127.0.0.1:3306) |
+| 数据库 | MySQL `XnetMLops` (192.168.1.5:3306) |
 | 连接池 | HikariCP (最大 20 连接) |
-| HDFS | hdfs://127.0.0.1:8020 (Hadoop Client 3.3.4) |
-| Jenkins | http://127.0.0.1:8080 |
+| HDFS | hdfs://192.168.1.5:8020 (Hadoop Client 3.3.4) |
+| Jenkins | http://192.168.1.5:8080 |
 | SSH 库 | JSch 0.1.55 |
 | HTML 解析 | Jsoup 1.17.2 |
 | 前端路径 | `XnetMLops-web/apps/web-antd/src/views/SMP/` |
@@ -204,12 +204,12 @@ XnetMLops-web/apps/web-antd/src/views/SMP/
 ```properties
 # application.properties
 server.port=8185
-spring.datasource.url=jdbc:mysql://127.0.0.1:3306/XnetMLops
+spring.datasource.url=jdbc:mysql://192.168.1.5:3306/XnetMLops
 spring.datasource.hikari.maximum-pool-size=20
 mybatis.configuration.map-underscore-to-camel-case=true
-hdfs.path=hdfs://127.0.0.1:8020
+hdfs.path=hdfs://192.168.1.5:8020
 hdfs.user=root
-jenkins.url=http://127.0.0.1:8080
+jenkins.url=http://192.168.1.5:8080
 jenkins.user=admin
 jenkins.token=<configured>
 ```
@@ -922,8 +922,8 @@ SMP 是平台基础设施层，**不依赖**其他 XnetMLops 模块，但**被�
 
 | 系统 | 用途 |
 |------|------|
-| MySQL (127.0.0.1:3306) | 共享数据库 |
-| HDFS (127.0.0.1:8020) | 存储桶目录管理 |
+| MySQL (192.168.1.5:3306) | 共享数据库 |
+| HDFS (192.168.1.5:8020) | 存储桶目录管理 |
 | Jenkins 实例 | Pipeline/Job 管理（由 SMP 自身部署） |
 | Harbor 注册中心 | Docker 镜像管理 |
 | Apache/清华/华为镜像站 | 版本目录爬取 |

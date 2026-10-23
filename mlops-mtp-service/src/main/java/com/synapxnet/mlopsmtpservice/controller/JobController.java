@@ -27,6 +27,9 @@ import java.util.TimeZone;
 @RequestMapping("/api/mtp")
 public class JobController {
 
+    @org.springframework.beans.factory.annotation.Value("${openxnet.rehearsal.enabled:false}")
+    private boolean rehearsalEnabled;
+
     private final JenkinsService jenkinsService;
     private final JenkinsScheduleService jenkinsScheduleService;
     private final TrainTaskService trainTaskService;
@@ -131,6 +134,7 @@ public class JobController {
 
         try {
             if (jobName.startsWith("JOB-DEMO-")) {
+                if (!rehearsalEnabled) return ResponseUtils.error(404, "构建信息不存在");
                 TaskInfo demoJob = taskInfoService.getJobByJobUid(jobName);
                 if (demoJob == null) {
                     return ResponseUtils.error(404, "构建信息不存在");
@@ -415,6 +419,7 @@ public class JobController {
     public ResponseEntity<Map<String, Object>> getScheduleStatus(@PathVariable String jobName) {
         try {
             if (jobName.startsWith("SCHEDULE-DEMO-")) {
+                if (!rehearsalEnabled) return ResponseUtils.error(404, "调度信息不存在");
                 TaskInfo demoSchedule = taskScheduleInfoService.getJobByJobUid(jobName);
                 if (demoSchedule == null) {
                     return ResponseUtils.error(404, "调度配置不存在");

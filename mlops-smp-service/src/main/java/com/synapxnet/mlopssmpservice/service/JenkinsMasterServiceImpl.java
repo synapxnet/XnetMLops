@@ -239,6 +239,9 @@ public class JenkinsMasterServiceImpl implements JenkinsMasterService {
     @Override
     @Transactional
     public Map<String, Object> deployMaster(Long masterId, JenkinsMasterDeployConfig config) {
+        if (config.getAdminPassword() == null || config.getAdminPassword().isBlank()) {
+            throw new IllegalArgumentException("Jenkins 管理员密码不能为空");
+        }
         Map<String, Object> result = new HashMap<>();
         JenkinsMaster master = getMasterById(masterId);
 
@@ -397,7 +400,7 @@ public class JenkinsMasterServiceImpl implements JenkinsMasterService {
             template = template.replace("${ADMIN_USERNAME}",
                     config.getAdminUsername() != null ? config.getAdminUsername() : "admin");
             template = template.replace("${ADMIN_PASSWORD}",
-                    config.getAdminPassword() != null ? config.getAdminPassword() : "admin123");
+                    config.getAdminPassword());
             template = template.replace("${ADMIN_EMAIL}",
                     config.getAdminEmail() != null ? config.getAdminEmail() : "admin@localhost");
             template = template.replace("${INSTALL_SUGGESTED_PLUGINS}",

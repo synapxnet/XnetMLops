@@ -75,6 +75,7 @@ public class JenkinsMaster {
      *   "ssh": [{"id": "ssh-1", "username": "xxx", "privateKey": "xxx"}]
      * }
      */
+    @JsonProperty(access = JsonProperty.Access.WRITE_ONLY)
     private String credentials_config;
 
     // ==================== 状态信息 ====================
@@ -83,6 +84,7 @@ public class JenkinsMaster {
     private String status;
 
     /** Jenkins初始密码(部署后获取) */
+    @JsonProperty(access = JsonProperty.Access.WRITE_ONLY)
     private String initial_password;
 
     /** 部署日志 */

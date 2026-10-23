@@ -1,0 +1,21 @@
+# Copyright (C) 2026 Synapxnet. All rights reserved.
+# Synapxnet Proprietary and Confidential. Explicit authorization is required for copying, distribution or use.
+# 可选真实漂移运行时令牌挂载 / Optional real feature-drift runtime credential mount.
+# Author: maoyo | Department: 研发部 | Date: 2026-10-23 | Version: 1.0.0
+# Security Level: INTERNAL | Maintainer: maoyo | Email: synapxnet@gmail.com
+# 从仓库根目录合并配置；此文件不包含令牌值。 / Merge from the repository root; no token values are included.
+# docker compose --env-file .env -f docker-compose.yml -f deploy/compose.feature-drift.example.yaml config --quiet
+services:
+  mlops-mep-service:
+    environment:
+      OPENXNET_FEATURE_DRIFT_ENABLED: "true"
+      OPENXNET_FEATURE_DRIFT_RUNTIME_URL: ${OPENXNET_FEATURE_DRIFT_RUNTIME_URL:?Set the real feature-drift runtime URL}
+      OPENXNET_FEATURE_DRIFT_RESOURCE_IDS: ${OPENXNET_FEATURE_DRIFT_RESOURCE_IDS:?Set explicitly registered resource IDs}
+      OPENXNET_FEATURE_DRIFT_TOKEN_FILE: /run/secrets/xnet_mlops_feature_drift_token
+    # Compose 文件型 secret 为只读挂载；宿主文件还应设置受限权限。 / File-backed Compose secrets mount read-only; restrict host file permissions too.
+    secrets:
+      - source: feature_drift_role_token
+        target: xnet_mlops_feature_drift_token
+secrets:
+  feature_drift_role_token:
+    file: ${OPENXNET_FEATURE_DRIFT_TOKEN_HOST_FILE:?Set the absolute path of an existing protected role token file}

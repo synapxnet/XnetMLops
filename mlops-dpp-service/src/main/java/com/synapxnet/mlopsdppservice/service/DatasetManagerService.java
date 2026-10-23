@@ -1,10 +1,10 @@
 package com.synapxnet.mlopsdppservice.service;
 
 import com.synapxnet.mlopsdppservice.Utils.HadoopUtil;
+import com.synapxnet.mlops.storage.HdfsFileDownload;
 
 import com.synapxnet.mlopsdppservice.entity.HdfsFile;
 import org.apache.hadoop.fs.*;
-import org.apache.hadoop.io.IOUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -12,7 +12,6 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.InputStream;
 import java.nio.file.Files;
@@ -31,6 +30,12 @@ public class DatasetManagerService {
 
     @Value("${app.temp.dir:#{null}}")
     private String tempDir;
+
+    @Value("${hdfs.path}")
+    private String downloadHdfsPath;
+
+    @Value("${hdfs.user}")
+    private String downloadHdfsUser;
 
     @Autowired
     public DatasetManagerService(HadoopUtil hadoopUtil) {
@@ -113,13 +118,9 @@ public class DatasetManagerService {
         }
     }
 
-    public ByteArrayOutputStream downloadFileFromHdfs(String filePath) throws Exception {
-        ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
-        try (FileSystem fs = hadoopUtil.getFileSystem();
-             FSDataInputStream inputStream = fs.open(new Path(filePath))) {
-            IOUtils.copyBytes(inputStream, outputStream, 4096, false);
-        }
-        return outputStream;
+    /** 为本次下载打开独立有界流，不与列表共享文件系统。 / Open an isolated bounded stream without sharing a filesystem with list requests. */
+    public HdfsFileDownload downloadFileFromHdfs(String rootPath, String filePath) throws Exception {
+        return HdfsFileDownload.open(rootPath, filePath, downloadHdfsPath, downloadHdfsUser);
     }
 
     public void deleteFromHdfs(String path) throws Exception {

@@ -7,6 +7,21 @@ import java.util.*;
 
 @Mapper
 public interface BucketMapper {
+    /** 显式保留旧实体的下划线字段。 Preserve legacy entity snake-case fields explicitly. */
+    @Results(id = "bucketEntityMap", value = {
+        @Result(column = "tenant_uid", property = "tenant_uid"),
+        @Result(column = "dept_uid", property = "dept_uid"),
+        @Result(column = "team_uid", property = "team_uid"),
+        @Result(column = "current_size", property = "current_size"),
+        @Result(column = "max_size", property = "max_size"),
+        @Result(column = "created_at", property = "created_at"),
+        @Result(column = "updated_at", property = "updated_at"),
+        @Result(column = "access_key", property = "access_key"),
+        @Result(column = "authorized_tenants", property = "authorized_tenants"),
+        @Result(column = "tenant_name", property = "tenant_name"),
+        @Result(column = "dept_name", property = "dept_name"),
+        @Result(column = "team_name", property = "team_name")
+    })
     @Select("SELECT b.*, " +
             "t.tenant_name AS tenant_name, " +
             "d.dept_name AS dept_name, " +
@@ -48,6 +63,7 @@ public interface BucketMapper {
     @Delete("DELETE FROM xnet_mlops_sys_bucket WHERE id = #{id}")
     int deleteBucketById(Long id);
 
+    @ResultMap("bucketEntityMap")
     @Select("SELECT b.*, " +
             "t.tenant_name AS tenant_name, " +
             "d.dept_name AS dept_name, " +
@@ -59,6 +75,7 @@ public interface BucketMapper {
             "WHERE b.id = #{id}")
     Optional<Bucket> findById(Long id);
 
+    @ResultMap("bucketEntityMap")
     @Select("SELECT b.*, " +
             "t.tenant_name AS tenant_name, " +
             "d.dept_name AS dept_name, " +

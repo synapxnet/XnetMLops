@@ -17,16 +17,22 @@ spec:
     spec:
       containers:
         - name: mlops-mep-service
-          image: 127.0.0.1/xnet-mlops/mlops-mep-service:latest
+          image: 192.168.10.132/xnet-mlops/mlops-mep-service:latest
           imagePullPolicy: Always
           ports:
-            - containerPort: 8186
+            - containerPort: 8184
               protocol: TCP
           env:
             - name: SPRING_PROFILES_ACTIVE
               value: "prod"
             - name: TZ
               value: "Asia/Shanghai"
+          # 运行环境与凭据由集群配置注入。 Inject runtime settings and credentials from cluster configuration.
+          envFrom:
+            - configMapRef:
+                name: xnet-mlops-runtime
+            - secretRef:
+                name: xnet-mlops-secrets
           resources:
             requests:
               memory: "512Mi"
@@ -35,15 +41,13 @@ spec:
               memory: "1024Mi"
               cpu: "1000m"
           livenessProbe:
-            httpGet:
-              path: /actuator/health
-              port: 8186
+            tcpSocket:
+              port: 8184
             initialDelaySeconds: 60
             periodSeconds: 30
           readinessProbe:
-            httpGet:
-              path: /actuator/health
-              port: 8186
+            tcpSocket:
+              port: 8184
             initialDelaySeconds: 30
             periodSeconds: 10
       imagePullSecrets:
@@ -59,31 +63,9 @@ metadata:
 spec:
   type: ClusterIP
   ports:
-    - port: 8186
-      targetPort: 8186
+    - port: 8184
+      targetPort: 8184
       protocol: TCP
       name: http
   selector:
     app: mlops-mep-service
----
-apiVersion: networking.k8s.io/v1
-kind: Ingress
-metadata:
-  name: mlops-mep-service-ingress
-  namespace: xnet-mlops
-  annotations:
-    nginx.ingress.kubernetes.io/proxy-body-size: "500m"
-    nginx.ingress.kubernetes.io/proxy-read-timeout: "600"
-spec:
-  ingressClassName: nginx
-  rules:
-    - host: mep.mlops.local
-      http:
-        paths:
-          - path: /
-            pathType: Prefix
-            backend:
-              service:
-                name: mlops-mep-service
-                port:
-                  number: 8186

@@ -2,6 +2,8 @@ package com.synapxnet.mlopssmpservice.controller;
 
 import com.synapxnet.mlopssmpservice.entity.Workstation;
 import com.synapxnet.mlopssmpservice.service.WorkstationService;
+import com.synapxnet.mlopssmpservice.service.SmpResourceAccessService;
+import jakarta.servlet.http.HttpServletRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -25,11 +27,15 @@ public class WorkstationController {
     @Autowired
     private WorkstationService workstationService;
 
+    @Autowired
+    private SmpResourceAccessService resourceAccess;
+
     /**
      * 获取所有工作站点
      */
     @GetMapping
-    public ResponseEntity<?> getAll() {
+    public ResponseEntity<?> getAll(HttpServletRequest request) {
+        resourceAccess.requireScope(request);
         try {
             List<Workstation> workstations = workstationService.getAll();
             Map<String, Object> response = new HashMap<>();
@@ -50,7 +56,8 @@ public class WorkstationController {
      * 根据ID获取工作站点
      */
     @GetMapping("/{id}")
-    public ResponseEntity<?> getById(@PathVariable Long id) {
+    public ResponseEntity<?> getById(@PathVariable Long id, HttpServletRequest request) {
+        resourceAccess.requireScope(request);
         try {
             Workstation workstation = workstationService.getById(id);
             Map<String, Object> response = new HashMap<>();
@@ -71,7 +78,8 @@ public class WorkstationController {
      * 根据UID获取工作站点
      */
     @GetMapping("/uid/{uid}")
-    public ResponseEntity<?> getByUid(@PathVariable String uid) {
+    public ResponseEntity<?> getByUid(@PathVariable String uid, HttpServletRequest request) {
+        resourceAccess.requireScope(request);
         try {
             Workstation workstation = workstationService.getByUid(uid);
             Map<String, Object> response = new HashMap<>();
@@ -92,7 +100,8 @@ public class WorkstationController {
      * 测试SSH连接
      */
     @PostMapping("/test")
-    public ResponseEntity<?> testConnection(@RequestBody Workstation workstation) {
+    public ResponseEntity<?> testConnection(@RequestBody Workstation workstation, HttpServletRequest request) {
+        resourceAccess.requireAdministrator(request);
         try {
             Map<String, Object> result = workstationService.testConnection(workstation);
             Map<String, Object> response = new HashMap<>();
@@ -114,8 +123,8 @@ public class WorkstationController {
      * 创建工作站点 (需要先通过测试连接)
      */
     @PostMapping
-    public ResponseEntity<?> create(@RequestBody Workstation workstation,
-                                    @RequestHeader(value = "X-User-Id", required = false) String userId) {
+    public ResponseEntity<?> create(@RequestBody Workstation workstation, HttpServletRequest request) {
+        var scope = resourceAccess.requireAdministrator(request);
         try {
             // 检查名称是否存在
             if (workstationService.isNameExists(workstation.getName())) {
@@ -125,7 +134,7 @@ public class WorkstationController {
                 ));
             }
 
-            Workstation created = workstationService.create(workstation, userId);
+            Workstation created = workstationService.create(workstation, scope.userId());
             Map<String, Object> response = new HashMap<>();
             response.put("code", 0);
             response.put("data", created);
@@ -145,10 +154,10 @@ public class WorkstationController {
      */
     @PutMapping("/{id}")
     public ResponseEntity<?> update(@PathVariable Long id,
-                                    @RequestBody Workstation workstation,
-                                    @RequestHeader(value = "X-User-Id", required = false) String userId) {
+                                    @RequestBody Workstation workstation, HttpServletRequest request) {
+        var scope = resourceAccess.requireAdministrator(request);
         try {
-            Workstation updated = workstationService.update(id, workstation, userId);
+            Workstation updated = workstationService.update(id, workstation, scope.userId());
             Map<String, Object> response = new HashMap<>();
             response.put("code", 0);
             response.put("data", updated);
@@ -167,7 +176,8 @@ public class WorkstationController {
      * 删除工作站点
      */
     @DeleteMapping("/{id}")
-    public ResponseEntity<?> delete(@PathVariable Long id) {
+    public ResponseEntity<?> delete(@PathVariable Long id, HttpServletRequest request) {
+        resourceAccess.requireAdministrator(request);
         try {
             workstationService.delete(id);
             return ResponseEntity.ok(Map.of(
@@ -187,7 +197,8 @@ public class WorkstationController {
      * 检查服务器状态
      */
     @PostMapping("/{id}/check")
-    public ResponseEntity<?> checkStatus(@PathVariable Long id) {
+    public ResponseEntity<?> checkStatus(@PathVariable Long id, HttpServletRequest request) {
+        resourceAccess.requireAdministrator(request);
         try {
             Map<String, Object> result = workstationService.checkStatus(id);
             Map<String, Object> response = new HashMap<>();
@@ -209,7 +220,8 @@ public class WorkstationController {
      * 检查名称是否存在
      */
     @GetMapping("/check-name")
-    public ResponseEntity<?> checkName(@RequestParam(value = "name") String name) {
+    public ResponseEntity<?> checkName(@RequestParam(value = "name") String name, HttpServletRequest request) {
+        resourceAccess.requireScope(request);
         try {
             boolean exists = workstationService.isNameExists(name);
             return ResponseEntity.ok(Map.of(
@@ -230,7 +242,8 @@ public class WorkstationController {
      * 检查主机名是否存在
      */
     @GetMapping("/check-hostname")
-    public ResponseEntity<?> checkHostname(@RequestParam(value = "hostname") String hostname) {
+    public ResponseEntity<?> checkHostname(@RequestParam(value = "hostname") String hostname, HttpServletRequest request) {
+        resourceAccess.requireScope(request);
         try {
             boolean exists = workstationService.isHostnameExists(hostname);
             return ResponseEntity.ok(Map.of(
@@ -251,7 +264,8 @@ public class WorkstationController {
      * 获取在线的工作站点列表（用于选择器）
      */
     @GetMapping("/online")
-    public ResponseEntity<?> getOnlineWorkstations() {
+    public ResponseEntity<?> getOnlineWorkstations(HttpServletRequest request) {
+        resourceAccess.requireScope(request);
         try {
             List<Workstation> workstations = workstationService.getOnlineWorkstations();
             return ResponseEntity.ok(Map.of(
@@ -273,7 +287,8 @@ public class WorkstationController {
      * 返回解密后的密码或私钥
      */
     @GetMapping("/{id}/credentials")
-    public ResponseEntity<?> getCredentials(@PathVariable Long id) {
+    public ResponseEntity<?> getCredentials(@PathVariable Long id, HttpServletRequest request) {
+        resourceAccess.requireAdministrator(request);
         try {
             Map<String, Object> credentials = workstationService.getCredentials(id);
             return ResponseEntity.ok(Map.of(

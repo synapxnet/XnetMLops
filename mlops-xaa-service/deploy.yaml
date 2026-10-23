@@ -2,6 +2,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: mlops-xaa-service
+  namespace: xnet-mlops
   labels:
     app: mlops-xaa-service
 spec:
@@ -18,30 +19,25 @@ spec:
         - name: mlops-xaa-service
           image: mlops-xaa-service:latest
           ports:
-            - containerPort: 8085
-          env:
-            - name: SPRING_DATASOURCE_URL
-              value: jdbc:mysql://mysql:3306/mlops?useSSL=false&serverTimezone=Asia/Shanghai
-            - name: SPRING_DATASOURCE_USERNAME
-              valueFrom:
-                secretKeyRef:
-                  name: mysql-secret
-                  key: username
-            - name: SPRING_DATASOURCE_PASSWORD
-              valueFrom:
-                secretKeyRef:
-                  name: mysql-secret
-                  key: password
+            - containerPort: 8186
+          # 运行环境与凭据由集群配置注入。 Inject runtime settings and credentials from cluster configuration.
+          envFrom:
+            - configMapRef:
+                name: xnet-mlops-runtime
+            - secretRef:
+                name: xnet-mlops-secrets
+
 ---
 apiVersion: v1
 kind: Service
 metadata:
   name: mlops-xaa-service
+  namespace: xnet-mlops
 spec:
   selector:
     app: mlops-xaa-service
   ports:
     - protocol: TCP
-      port: 8085
-      targetPort: 8085
+      port: 8186
+      targetPort: 8186
   type: ClusterIP
