@@ -114,12 +114,16 @@ class RecommendationRuntimeClientTest {
         } catch (Exception exception) {
             throw new IllegalStateException(exception);
         }
-        return new RecommendationRuntimeClient(
+        RecommendationRuntimeClient client = new RecommendationRuntimeClient(
                 "http://124.223.86.54:8888",
                 "dcn_1",
                 "recommendation-dcn-demo-v1",
                 new ObjectMapper(),
                 httpClient);
+        org.springframework.test.util.ReflectionTestUtils.setField(client, "configuredDeploymentUid", "deploy_recommendation_prod");
+        org.springframework.test.util.ReflectionTestUtils.setField(client, "configuredProbeDatasetRef", "staging://goai/recommendation-dcn-v1/probe");
+        org.springframework.test.util.ReflectionTestUtils.setField(client, "probeRequestJson", "{\"user_id\":\"test-user\"}");
+        return client;
     }
 
     /**

@@ -8,7 +8,8 @@ import jakarta.annotation.Resource;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.stereotype.Service;
+import com.synapxnet.mlopslogin.service.LoginVerificationService;
+import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
@@ -22,8 +23,8 @@ class UserControllerService {
 @RestController
 @RequestMapping("/api")
 public class UserController {
-    private static final Set<String> DEMO_PHONES = Set.of("17870171303", "15870171303");
-    private static final String DEMO_VERIFICATION_CODE = "000000";
+    @Resource
+    private LoginVerificationService loginVerificationService;
 
     @Resource
     private UserMapper userMapper;
@@ -45,7 +46,7 @@ public class UserController {
             String userPhone = request.getUserPhone();
             String code = request.getCode();
 
-            if (!DEMO_PHONES.contains(userPhone) || !DEMO_VERIFICATION_CODE.equals(code)) {
+            if (!loginVerificationService.verify(userPhone, code)) {
                 return ResponseEntity.status(401).body(Map.of(
                         "code", 401,
                         "message", "手机号或验证码错误"
@@ -79,7 +80,7 @@ public class UserController {
             ));
 
         } catch (Exception e) {
-            return ResponseEntity.status(500).body("Server error: " + e.getMessage());
+            return ResponseEntity.status(503).body(Map.of("code", 503, "message", "登录服务暂不可用，请稍后重试"));
         }
     }
     @PostMapping("/auth/logout")
@@ -231,29 +232,22 @@ public class UserController {
         }
     }
 
+    /** 向企业注册用户发送一次性验证码。 Send a one-time code to an enterprise account. */
     @PostMapping("/sms-code")
     public ResponseEntity<?> sendCode(@RequestBody LoginRequest request) {
-        String userPhone = request.getUserPhone();
-        if (!DEMO_PHONES.contains(userPhone)) {
-            return ResponseEntity.badRequest().body(Map.of(
-                    "code", 400,
-                    "message", "展示版仅支持已配置账号"
-            ));
+        try {
+            String phone = request.getUserPhone();
+            if (phone == null || !phone.matches("1[0-9]{10}")) {
+                return ResponseEntity.badRequest().body(Map.of("code", 400, "message", "请输入有效手机号"));
+            }
+            if (userMapper.findByPhone(phone) != null) loginVerificationService.send(phone);
+            return ResponseEntity.ok(Map.of("code", 0, "message", "如账号已注册，验证码将发送到您的手机"));
+        } catch (ResponseStatusException expected) {
+            return ResponseEntity.status(expected.getStatusCode()).body(Map.of(
+                    "code", expected.getStatusCode().value(), "message", expected.getReason()));
+        } catch (Exception unavailable) {
+            return ResponseEntity.status(503).body(Map.of("code", 503, "message", "登录服务暂不可用，请稍后重试"));
         }
-
-        User user = userMapper.findByPhone(userPhone);
-        if (user == null) {
-            return ResponseEntity.status(404).body(Map.of(
-                    "code", 404,
-                    "message", "User not found"
-            ));
-        }
-
-        return ResponseEntity.ok(Map.of(
-                "code", 0,
-                "message", "展示验证码已就绪",
-                "data", Map.of("demo", true)
-        ));
     }
 
 

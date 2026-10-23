@@ -89,7 +89,7 @@ class CompetitionModelVersionTest {
         when(quantitative.supports(QUANT)).thenReturn(true);
         when(quantitative.deployment()).thenReturn(Map.of("activeRevision", 1, "modelDigestSha256", "digest", "stage", "BASELINE"));
         when(quantitative.health()).thenReturn(Map.of("status", "ready", "datasetRows", 2000, "usageBoundary", "RESEARCH_ONLY"));
-        var service = new CompetitionModelLifecycleService(approval(), quantitative, mock(RecommendationRuntimeClient.class));
+        var service = new CompetitionModelLifecycleService(approval(), quantitative, mock(RecommendationRuntimeClient.class), true);
         var result = service.deploymentEvidence(context("old", "read"), QUANT);
         assertEquals("digest", result.get("modelDigestSha256"));
         assertEquals(2000, result.get("datasetRows"));
@@ -101,7 +101,7 @@ class CompetitionModelVersionTest {
     /** 错误审批目标和未知资源在审批网络调用前拒绝。 / Reject mismatched approval targets and unknown resources before approval network calls. */
     @Test void rejectsMismatchedOrUnknownResources() {
         var verifier = approval();
-        var service = new CompetitionModelLifecycleService(verifier, mock(QuantitativeRuntimeClient.class), mock(RecommendationRuntimeClient.class));
+        var service = new CompetitionModelLifecycleService(verifier, mock(QuantitativeRuntimeClient.class), mock(RecommendationRuntimeClient.class), true);
         var arguments = new CompetitionModelLifecycleService.FallbackApplyArguments(RISK, "fallback", "repair");
         var wrong = body(FALLBACK, RISK + "/traffic", "42", "wrong", false, arguments);
         assertThrows(AgentContractException.class, () -> service.applyFallback(wrong, context("old", "wrong")));
@@ -222,7 +222,7 @@ class CompetitionModelVersionTest {
 
     /** 创建无外部请求的服务。 / Create a service without external requests. */
     private CompetitionModelLifecycleService service() {
-        return new CompetitionModelLifecycleService(approval(), mock(QuantitativeRuntimeClient.class), mock(RecommendationRuntimeClient.class));
+        return new CompetitionModelLifecycleService(approval(), mock(QuantitativeRuntimeClient.class), mock(RecommendationRuntimeClient.class), true);
     }
 
     /** 创建审批通过替身。 / Create an approved-decision test double. */

@@ -14,7 +14,11 @@ import com.synapxnet.goai.contract.AgentContractException;
 import java.util.List;
 
 /** 明确注册同一部署的独立治理资源。 / Explicitly register independent governed resources belonging to one deployment. */
-record CompetitionModelResourceBinding(String deploymentUid, long candidateRevision, String kind) {
+record CompetitionModelResourceBinding(String deploymentUid, long candidateRevision, String kind, List<String> registeredIds) {
+    /** 测试演练保留旧资源结构。 Retain the legacy resource shape for isolated rehearsal tests. */
+    CompetitionModelResourceBinding(String deploymentUid, long candidateRevision, String kind) {
+        this(deploymentUid, candidateRevision, kind, List.of());
+    }
     /** 从平台已登记资源中取得部署关联。 / Resolve deployment associations from the platform-owned registry. */
     static CompetitionModelResourceBinding forDeployment(String deploymentUid) {
         if (deploymentUid == null) throw new AgentContractException(400, "INVALID_ARGUMENT", "deploymentUid 不能为空");
@@ -29,6 +33,7 @@ record CompetitionModelResourceBinding(String deploymentUid, long candidateRevis
 
     /** 列出当前部署的规范资源，不合并回滚与流量版本。 / List canonical resources without merging rollback and traffic versions. */
     List<String> resourceIds() {
+        if (!registeredIds.isEmpty()) return registeredIds;
         if ("recommendation".equals(kind)) return List.of(deploymentUid);
         if ("risk".equals(kind)) return List.of(deploymentUid, deploymentUid + "/traffic", deploymentUid + "/feature-set",
                 deploymentUid + "/revisions/" + candidateRevision, "experiment_risk_" + candidateRevision);

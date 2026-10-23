@@ -29,7 +29,8 @@ import java.util.Map;
 @Component
 public class QuantitativeRuntimeClient {
 
-    private static final String DEPLOYMENT_UID = "deploy_quant_ashare_research";
+    @Value("${xnet.quantitative.deployment-uid:}")
+    private String configuredDeploymentUid = "";
 
     private final URI baseUri;
     private final String serviceToken;
@@ -68,7 +69,7 @@ public class QuantitativeRuntimeClient {
             String serviceToken,
             ObjectMapper objectMapper,
             HttpClient httpClient) {
-        this.baseUri = validateBaseUri(runtimeUrl);
+        this.baseUri = runtimeUrl == null || runtimeUrl.isBlank() ? null : validateBaseUri(runtimeUrl);
         this.serviceToken = serviceToken == null ? "" : serviceToken.trim();
         this.objectMapper = objectMapper;
         this.httpClient = httpClient;
@@ -81,7 +82,8 @@ public class QuantitativeRuntimeClient {
      * @return 属于量化研究部署时返回 true
      */
     public boolean supports(String deploymentUid) {
-        return DEPLOYMENT_UID.equals(deploymentUid);
+        return baseUri != null && serviceToken.length() >= 32 && !configuredDeploymentUid.isBlank()
+                && configuredDeploymentUid.equals(deploymentUid);
     }
 
     /** 返回量化运行时和 DataOps 数据产品健康证据。 */
@@ -212,7 +214,7 @@ public class QuantitativeRuntimeClient {
      * @return HTTP 请求构建器
      */
     private HttpRequest.Builder request(String path) {
-        if (serviceToken.length() < 32) {
+        if (baseUri == null || serviceToken.length() < 32) {
             throw new AgentContractException(503, "RUNTIME_NOT_CONFIGURED", "量化运行时服务令牌未配置");
         }
         return HttpRequest.newBuilder(baseUri.resolve(path))

@@ -9,29 +9,14 @@
 [![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.4.6-6db33f.svg)](https://spring.io/projects/spring-boot)
 [![License](https://img.shields.io/badge/license-MIT-2ea44f.svg)](./LICENSE)
 
-[在线体验](https://goai.xnetmlops.synapxnet.online) · [前端仓库 XnetMLops-web](https://github.com/synapxnet/XnetMLops-web/tree/v1.3.0) · [OpenXnet 开源社区](https://openxnet.synapxnet.com) · [查看许可](./LICENSE)
+[在线体验](https://www.xnetmlops.synapxnet.cn) · [前端仓库 XnetMLops-web](https://github.com/synapxnet/XnetMLops-web/tree/v1.3.0) · [OpenXnet 开源社区](https://openxnet.synapxnet.com) · [查看许可](./LICENSE)
 
 </div>
 
-## GOAI v1.3.0 发布与下载
+## 主线版本
 
-当前为 `GOAI-Competition` 分支，**v1.3.0 源码版包含本页说明修订**。README 修订不改变已验证程序文件，也不代表重新部署线上服务。
+本仓库保留驻场 Agent、模型工程、跨平台证据、Skill、权限、审批、幂等与回滚能力。比赛专用账号与固定验证码不再作为默认配置。历史 v1.3.0 发行可在 GitHub Releases 查询。
 
-**[发布说明](https://github.com/synapxnet/XnetMLops/releases/tag/v1.3.0) · [下载源码 ZIP](https://github.com/synapxnet/XnetMLops/releases/download/v1.3.0/XnetMLops-v1.3.0-source.zip) · [v1.3.0 固定源码](https://github.com/synapxnet/XnetMLops/tree/v1.3.0) · [程序验证基线交付文档](https://github.com/synapxnet/XnetMLops/blob/c9cae0607fc6fba6b76b26d9da4ca1ace0ab13bc/docs/GOAI-FINALS-V1.3.0-SOURCE-DELIVERY.md)**
-
-[配套前端 v1.3.0](https://github.com/synapxnet/XnetMLops-web/releases/tag/v1.3.0) · [OpenXnet v1.3.0](https://github.com/synapxnet/OpenXnet/releases/tag/v1.3.0)
-
-GOAI 版包含模型证据/制品读取、Skill 候选查询、工作流契约和有界内存 HDFS 下载。MEP 受控执行检查委派身份、审批摘要、资源版本和幂等约束；未配置执行器的操作明确返回不可用。
-
-[驻场 Agent 运行时](https://github.com/synapxnet/OpenXnet/tree/c841ef841da8477fc312e27cd390aecac8ed2d7e/services/platform-resident-agent)作为独立平台服务运行，与 OpenXnet AgentTeams 协同，需要配置平台身份、模型服务与委派权限；已有智能助手不代表驻场运行时已经配置完成。
-
-程序基线验证：8 个 Maven Reactor 打包成功，118 项隔离单测通过；外部服务 Application/Integration 测试未执行，迁移 SQL 尚未在隔离 MySQL 试跑。 发布版本不代表重新部署线上，也不等于生产认证；环境配置与限制以交付文档为准。
-
-程序验证基线：[c9cae060](https://github.com/synapxnet/XnetMLops/commit/c9cae0607fc6fba6b76b26d9da4ca1ace0ab13bc)。GOAI 发行在此之后仅修订 README 文档；更新后的源码 ZIP 请按发布附件中的校验值核对。
-
-> **下方均为历史界面截图：** 保留作为展示参考，不代表 v1.3.0 最新 UI 验收结果，也不是实时治理执行证据。
-
-![XnetMLops 分析页](./docs/images/xnetmlops-overview.png)
 
 ## 界面预览
 
@@ -142,8 +127,7 @@ mvn -B -ntp -DskipTests package
 
 ## 演示接入与 API 路由
 
-- GOAI 演示入口：<https://goai.xnetmlops.synapxnet.online/#/auth/login>。
-- 公开演示手机号：**`17870171303`**；验证码：**`000000`**（仅限演示环境，已由项目方确认并授权公开）。登录方式为 **11 位手机号 + 6 位验证码**，提交到 `POST /api/auth/login`；不是密码登录，也不是 OpenXnet AgentTeams 的演示访问码输入框。
+- 产品地址：<https://www.xnetmlops.synapxnet.cn/#/auth/login>。
 - 2026-09-18 只读核验：入口 HTTP 200、标题 `XnetMLops`；登录后读取 `/api/resident/v1/status` 返回 `platform=mlops`、`agentId=agt-mlops-resident-v130`，未登录读取为 401。该检查证明平台身份和访问控制，不代表重新完成全业务流程验收。
 
 Web API 均使用演示入口的同源地址：

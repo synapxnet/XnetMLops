@@ -24,6 +24,35 @@ import static org.mockito.Mockito.when;
  */
 class CompetitionModelLifecycleServiceTest {
 
+    /** 主线默认不建立任何比赛部署。 Mainline defaults never establish competition deployments. */
+    @Test
+    void mainlineDoesNotCreateDemoState() {
+        var service = new CompetitionModelLifecycleService(mock(GovernedApprovalVerifier.class),
+                mock(QuantitativeRuntimeClient.class), mock(RecommendationRuntimeClient.class));
+        org.junit.jupiter.api.Assertions.assertFalse(service.supports("deploy_risk_prod"));
+        org.junit.jupiter.api.Assertions.assertThrows(com.synapxnet.goai.contract.AgentContractException.class,
+                () -> service.deploymentEvidence(context("mainline"), "deploy_risk_prod"));
+    }
+
+    /** 正式运行时在演练关闭时仍可读取自身修订与版本。 Real runtimes remain readable with rehearsal disabled. */
+    @Test
+    void realRuntimeUsesItsOwnBaselineWithoutRehearsal() {
+        var runtime = mock(QuantitativeRuntimeClient.class);
+        when(runtime.supports("deploy_mainline_quant")).thenReturn(true);
+        when(runtime.deployment()).thenReturn(Map.of("activeRevision", 7L, "resourceVersion", "13",
+                "inputContractStatus", "MATCHED"));
+        when(runtime.health()).thenReturn(Map.of("status", "ready", "datasetRows", 20,
+                "usageBoundary", "PRODUCTION"));
+        var service = new CompetitionModelLifecycleService(mock(GovernedApprovalVerifier.class),
+                runtime, mock(RecommendationRuntimeClient.class), false);
+        org.springframework.test.util.ReflectionTestUtils.setField(service, "resourceBindingsJson",
+                "[{\"deploymentUid\":\"deploy_mainline_quant\",\"candidateRevision\":8,\"kind\":\"quant\",\"resourceIds\":[\"deploy_mainline_quant\"]}]");
+        org.junit.jupiter.api.Assertions.assertTrue(service.supports("deploy_mainline_quant"));
+        var evidence = service.deploymentEvidence(context("mainline-real"), "deploy_mainline_quant");
+        assertEquals(7L, evidence.get("activeRevision"));
+        assertEquals("13", evidence.get("resourceVersion"));
+    }
+
     /** 正常验证数据集必须返回健康探针，避免失败开关污染标准 Live 场景。 */
     @Test
     void regularVerificationDatasetPasses() {
@@ -84,7 +113,7 @@ class CompetitionModelLifecycleServiceTest {
         return new CompetitionModelLifecycleService(
                 verifier,
                 mock(QuantitativeRuntimeClient.class),
-                mock(RecommendationRuntimeClient.class));
+                mock(RecommendationRuntimeClient.class), true);
     }
 
     /** 创建使用指定量化客户端的生命周期服务。 */
@@ -94,7 +123,7 @@ class CompetitionModelLifecycleServiceTest {
         return new CompetitionModelLifecycleService(
                 verifier,
                 client,
-                mock(RecommendationRuntimeClient.class));
+                mock(RecommendationRuntimeClient.class), true);
     }
 
     /** 构造返回真实基线和候选指标的量化运行时客户端替身。 */

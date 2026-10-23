@@ -36,6 +36,7 @@ class QuantitativeRuntimeClientTest {
                 "x".repeat(32),
                 new ObjectMapper(),
                 mock(HttpClient.class));
+        org.springframework.test.util.ReflectionTestUtils.setField(client, "configuredDeploymentUid", "deploy_quant_ashare_research");
         assertTrue(client.supports("deploy_quant_ashare_research"));
         assertFalse(client.supports("deploy_quant_value_prod"));
         assertFalse(client.supports("deploy_recommendation_prod"));

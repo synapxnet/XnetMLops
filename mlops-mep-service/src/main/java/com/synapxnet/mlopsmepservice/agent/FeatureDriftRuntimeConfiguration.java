@@ -22,7 +22,10 @@ public class FeatureDriftRuntimeConfiguration {
     FeatureDriftRuntimeClient featureDriftRuntimeClient(ObjectMapper mapper, GovernedApprovalVerifier verifier,
             @Value("${openxnet.feature-drift.enabled:false}") boolean enabled,
             @Value("${openxnet.feature-drift.runtime-url:}") String url,
-            @Value("${openxnet.feature-drift.token-file:}") String tokenFile) {
-        return new FeatureDriftRuntimeClient(enabled, url, tokenFile, "mlops", mapper, verifier);
+            @Value("${openxnet.feature-drift.token-file:}") String tokenFile,
+            @Value("${OPENXNET_FEATURE_DRIFT_RESOURCE_IDS:}") String resourceIds) {
+        return new FeatureDriftRuntimeClient(enabled, url, tokenFile, "mlops", mapper, verifier)
+                .withRegisteredResources(java.util.Arrays.stream(resourceIds.split(",")).map(String::trim)
+                    .filter(value -> !value.isEmpty()).collect(java.util.stream.Collectors.toSet()));
     }
 }

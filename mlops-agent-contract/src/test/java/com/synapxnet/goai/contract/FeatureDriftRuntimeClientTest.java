@@ -50,12 +50,13 @@ class FeatureDriftRuntimeClientTest {
             assertEquals("POST", exchange.getRequestMethod()); assertEquals("/v1/incidents/inc_test/actions/fallback", exchange.getRequestURI().getPath());
             Map<?, ?> input = mapper.readValue(exchange.getRequestBody(), Map.class); sent.set(input);
             boolean dry = Boolean.TRUE.equals(input.get("dryRun")); String version = dry ? "42" : "43";
-            byte[] output = mapper.writeValueAsBytes(Map.of("data", data(), "resourceVersion", version, "actionReceipt", Map.of("actionId", "real_action", "beforeResourceVersion", "42", "afterResourceVersion", version,
+            Map<String, Object> productionData = data(); productionData.put("sourceMode", "PRODUCTION"); productionData.put("synthetic", false);
+            byte[] output = mapper.writeValueAsBytes(Map.of("data", productionData, "resourceVersion", version, "actionReceipt", Map.of("actionId", "real_action", "beforeResourceVersion", "42", "afterResourceVersion", version,
                 "status", dry ? "DRY_RUN" : "SUCCEEDED", "startedAt", "2026-09-18T01:00:00Z", "completedAt", "2026-09-18T01:00:01Z")));
             exchange.sendResponseHeaders(200, output.length); exchange.getResponseBody().write(output); exchange.close();
         }); server.start();
         try {
-            var client = new FeatureDriftRuntimeClient(true, "http://127.0.0.1:" + server.getAddress().getPort(), TOKEN, "mlops", mapper, verifier, HttpClient.newHttpClient());
+            var client = new FeatureDriftRuntimeClient(true, "http://127.0.0.1:" + server.getAddress().getPort(), TOKEN, "mlops", mapper, verifier, HttpClient.newHttpClient()).withRegisteredResources(java.util.Set.of("deploy_risk_prod"));
             String tool = "mlops.feature.fallback.apply";
             var result = client.invoke(body(tool, false), context(tool));
             assertEquals("human_verified", sent.get().get("approverId")); assertEquals("ws_test", sent.get().get("workspaceId"));
@@ -75,12 +76,12 @@ class FeatureDriftRuntimeClientTest {
             if (variant.get() == 1) responseData.put("workspaceId", "ws_other");
             if (variant.get() == 2) responseData.put("incidentId", "inc_other");
             if (variant.get() == 3) responseData.put("traceId", "trace_other");
-            if (variant.get() == 4) responseData.put("sourceMode", "SIMULATION");
+            if (variant.get() == 4) responseData.put("sourceMode", "UNKNOWN");
             byte[] output = mapper.writeValueAsBytes(Map.of("data", responseData, "resourceVersion", variant.get() == 5 ? "" : "42"));
             exchange.sendResponseHeaders(variant.get() == 6 ? 409 : 200, output.length); exchange.getResponseBody().write(output); exchange.close();
         }); server.start();
         try {
-            var client = new FeatureDriftRuntimeClient(true, "http://127.0.0.1:" + server.getAddress().getPort(), TOKEN, "mlops", mapper, verifier, HttpClient.newHttpClient());
+            var client = new FeatureDriftRuntimeClient(true, "http://127.0.0.1:" + server.getAddress().getPort(), TOKEN, "mlops", mapper, verifier, HttpClient.newHttpClient()).withRegisteredResources(java.util.Set.of("deploy_risk_prod"));
             String tool = "mlops.deployment.get";
             assertTrue(client.invoke(body(tool, false), context(tool)).success());
             for (int i = 1; i <= 6; i++) { variant.set(i); assertThrows(AgentContractException.class, () -> client.invoke(body(tool, false), context(tool))); }
@@ -91,18 +92,18 @@ class FeatureDriftRuntimeClientTest {
     @Test void deniedApprovalStopsBeforeTransport() {
         var verifier = mock(GovernedApprovalVerifier.class);
         when(verifier.verify(any(), any())).thenThrow(new AgentContractException(403, "APPROVAL_REQUIRED", "Denied"));
-        var client = new FeatureDriftRuntimeClient(true, "http://127.0.0.1:1", TOKEN, "mlops", mapper, verifier, HttpClient.newHttpClient());
+        var client = new FeatureDriftRuntimeClient(true, "http://127.0.0.1:1", TOKEN, "mlops", mapper, verifier, HttpClient.newHttpClient()).withRegisteredResources(java.util.Set.of("deploy_risk_prod"));
         var error = assertThrows(AgentContractException.class, () -> client.invoke(body("mlops.feature.fallback.apply", false), context("mlops.feature.fallback.apply")));
         assertEquals("APPROVAL_REQUIRED", error.getCode());
     }
     /** 固定目标和平台阻止跨业务工具调用。 / Fixed targets and platform roles block unrelated tools. */
     @Test void exactRiskTargetsAndDisabledModeDoNotCaptureOtherWorkloads() {
         var verifier = mock(GovernedApprovalVerifier.class);
-        var client = new FeatureDriftRuntimeClient(true, "http://127.0.0.1:1", TOKEN, "mlops", mapper, verifier, HttpClient.newHttpClient());
+        var client = new FeatureDriftRuntimeClient(true, "http://127.0.0.1:1", TOKEN, "mlops", mapper, verifier, HttpClient.newHttpClient()).withRegisteredResources(java.util.Set.of("deploy_risk_prod"));
         assertTrue(client.handles("mlops.deployment.get", Map.of("deploymentUid", "deploy_risk_prod")));
         assertFalse(client.handles("mlops.deployment.get", Map.of("deploymentUid", "deploy_quant_ashare_research")));
         assertFalse(client.handles("aiops.service.health", Map.of("serviceUid", "service_risk_inference")));
-        assertFalse(new FeatureDriftRuntimeClient(false, "", "", "mlops", mapper, verifier, HttpClient.newHttpClient()).handles("mlops.deployment.get", Map.of("deploymentUid", "deploy_risk_prod")));
-        assertThrows(IllegalArgumentException.class, () -> new FeatureDriftRuntimeClient(true, "http://user:pass@127.0.0.1/", TOKEN, "mlops", mapper, verifier, HttpClient.newHttpClient()));
+        assertFalse(new FeatureDriftRuntimeClient(false, "", "", "mlops", mapper, verifier, HttpClient.newHttpClient()).withRegisteredResources(java.util.Set.of("deploy_risk_prod")).handles("mlops.deployment.get", Map.of("deploymentUid", "deploy_risk_prod")));
+        assertThrows(IllegalArgumentException.class, () -> new FeatureDriftRuntimeClient(true, "http://user:pass@127.0.0.1/", TOKEN, "mlops", mapper, verifier, HttpClient.newHttpClient()).withRegisteredResources(java.util.Set.of("deploy_risk_prod")));
     }
 }

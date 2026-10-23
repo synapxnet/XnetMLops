@@ -35,8 +35,12 @@ import java.util.Map;
 @Component
 public class RecommendationRuntimeClient {
 
-    private static final String DEPLOYMENT_UID = "deploy_recommendation_prod";
-    private static final String PROBE_DATASET_REF = "staging://goai/recommendation-dcn-v1/probe";
+    @Value("${xnet.recommendation.deployment-uid:}")
+    private String configuredDeploymentUid = "";
+    @Value("${xnet.recommendation.probe-dataset-ref:}")
+    private String configuredProbeDatasetRef = "";
+    @Value("${xnet.recommendation.probe-request:}")
+    private String probeRequestJson = "";
     private static final int EXPECTED_CANDIDATE_COUNT = 8;
 
     private final URI baseUri;
@@ -85,9 +89,9 @@ public class RecommendationRuntimeClient {
             String expectedProductVersion,
             ObjectMapper objectMapper,
             HttpClient httpClient) {
-        this.baseUri = validateBaseUri(runtimeUrl);
-        this.expectedAlgorithmId = requireConfiguredText(expectedAlgorithmId, "推荐算法版本未配置");
-        this.expectedProductVersion = requireConfiguredText(expectedProductVersion, "推荐产品版本未配置");
+        this.baseUri = runtimeUrl == null || runtimeUrl.isBlank() ? null : validateBaseUri(runtimeUrl);
+        this.expectedAlgorithmId = expectedAlgorithmId == null ? "" : expectedAlgorithmId.trim();
+        this.expectedProductVersion = expectedProductVersion == null ? "" : expectedProductVersion.trim();
         this.objectMapper = objectMapper;
         this.httpClient = httpClient;
     }
@@ -99,7 +103,8 @@ public class RecommendationRuntimeClient {
      * @return 属于固定推荐部署时返回 true
      */
     public boolean supports(String deploymentUid) {
-        return DEPLOYMENT_UID.equals(deploymentUid);
+        return baseUri != null && !expectedAlgorithmId.isBlank() && !expectedProductVersion.isBlank()
+                && !configuredDeploymentUid.isBlank() && configuredDeploymentUid.equals(deploymentUid);
     }
 
     /**
@@ -109,7 +114,7 @@ public class RecommendationRuntimeClient {
      * @return 引用匹配时返回 true
      */
     public boolean supportsDataset(String datasetRef) {
-        return PROBE_DATASET_REF.equals(datasetRef);
+        return !configuredProbeDatasetRef.isBlank() && configuredProbeDatasetRef.equals(datasetRef);
     }
 
     /**
@@ -231,17 +236,16 @@ public class RecommendationRuntimeClient {
      * @return 固定请求对象
      */
     private Map<String, Object> fixedProbeRequest(int size) {
-        Map<String, Object> payload = new LinkedHashMap<>();
-        payload.put("user_id", "430051532588974080");
-        payload.put("source", "ios");
-        payload.put("udid", "3bfd7f1d32724d32b73305d3c1e754cf");
-        payload.put("data_type", "article");
+        Map<String, Object> payload;
+        try {
+            if (probeRequestJson.isBlank()) throw new IllegalArgumentException();
+            payload = new LinkedHashMap<>(objectMapper.readValue(probeRequestJson,
+                    new TypeReference<Map<String, Object>>() { }));
+        } catch (Exception invalid) {
+            throw new AgentContractException(503, "RUNTIME_NOT_CONFIGURED", "请配置本平台授权探针请求");
+        }
         payload.put("size", size);
-        payload.put("request_time", 1785403850937L);
-        payload.put("recommend_scene", "all");
-        payload.put("nav_id", "720001000000000022");
-        payload.put("biz_ids", List.of());
-        payload.put("current", 0);
+        payload.put("request_time", System.currentTimeMillis());
         return Collections.unmodifiableMap(payload);
     }
 
@@ -309,6 +313,7 @@ public class RecommendationRuntimeClient {
      * @return HTTP 请求构建器
      */
     private HttpRequest.Builder request(String path) {
+        if (baseUri == null) throw new AgentContractException(503, "RUNTIME_NOT_CONFIGURED", "推荐运行时未配置");
         return HttpRequest.newBuilder(baseUri.resolve(path))
                 .timeout(Duration.ofSeconds(15))
                 .header("Accept", "application/json");

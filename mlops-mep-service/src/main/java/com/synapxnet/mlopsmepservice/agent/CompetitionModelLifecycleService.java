@@ -34,6 +34,9 @@ import java.util.function.Supplier;
 @Service
 public class CompetitionModelLifecycleService {
 
+    @org.springframework.beans.factory.annotation.Value("${OPENXNET_MODEL_RESOURCE_BINDINGS:[]}")
+    private String resourceBindingsJson = "[]";
+    private final boolean rehearsalEnabled;
     private final GovernedApprovalVerifier approvalVerifier;
     private final QuantitativeRuntimeClient quantitativeRuntimeClient;
     private final RecommendationRuntimeClient recommendationRuntimeClient;
@@ -55,6 +58,15 @@ public class CompetitionModelLifecycleService {
             GovernedApprovalVerifier approvalVerifier,
             QuantitativeRuntimeClient quantitativeRuntimeClient,
             RecommendationRuntimeClient recommendationRuntimeClient) {
+        this(approvalVerifier, quantitativeRuntimeClient, recommendationRuntimeClient, false);
+    }
+
+    /** 显式启用隔离演练，主线不生成固定沙盘状态。 Enable isolated rehearsal explicitly; mainline never fabricates sandbox state. */
+    @org.springframework.beans.factory.annotation.Autowired
+    public CompetitionModelLifecycleService(GovernedApprovalVerifier approvalVerifier,
+            QuantitativeRuntimeClient quantitativeRuntimeClient, RecommendationRuntimeClient recommendationRuntimeClient,
+            @org.springframework.beans.factory.annotation.Value("${openxnet.rehearsal.enabled:false}") boolean rehearsalEnabled) {
+        this.rehearsalEnabled = rehearsalEnabled;
         this.approvalVerifier = approvalVerifier;
         this.quantitativeRuntimeClient = quantitativeRuntimeClient;
         this.recommendationRuntimeClient = recommendationRuntimeClient;
@@ -64,8 +76,10 @@ public class CompetitionModelLifecycleService {
      * 判断部署是否属于比赛沙盘。
      */
     public boolean supports(String deploymentUid) {
-        return deploymentUid != null && (deploymentUid.startsWith("deploy_recommendation_")
-                || deploymentUid.startsWith("deploy_quant_") || deploymentUid.startsWith("deploy_risk_"));
+        return deploymentUid != null && (quantitativeRuntimeClient.supports(deploymentUid)
+                || recommendationRuntimeClient.supports(deploymentUid)
+                || (rehearsalEnabled && (deploymentUid.startsWith("deploy_recommendation_")
+                || deploymentUid.startsWith("deploy_quant_") || deploymentUid.startsWith("deploy_risk_"))));
     }
 
     /**
@@ -167,6 +181,7 @@ public class CompetitionModelLifecycleService {
             return Map.copyOf(data);
         }
         LifecycleState state = state(context, arguments.deploymentUid());
+        requireRehearsal();
         boolean forcedVerificationFailure = "staging://goai/verification-failure-v1"
                 .equals(arguments.testDatasetRef());
         boolean passed = state.contractHealthy() && !forcedVerificationFailure;
@@ -237,6 +252,7 @@ public class CompetitionModelLifecycleService {
             return Map.copyOf(data);
         }
         LifecycleState state = state(context, arguments.deploymentUid());
+        requireRehearsal();
         boolean recovered = state.promoted();
         return Map.of(
                 "deploymentUid", arguments.deploymentUid(),
@@ -314,7 +330,7 @@ public class CompetitionModelLifecycleService {
             AgentContract.RequestContext context, EvaluationArguments arguments) {
         requireEvaluation(arguments);
         return durableRead(() -> {
-            CompetitionModelResourceBinding.forDeployment(arguments.deploymentUid()).requireResource(arguments.experimentUid());
+            resourceBinding(arguments.deploymentUid()).requireResource(arguments.experimentUid());
             return withResourceVersions(context, arguments.deploymentUid(), arguments.experimentUid(), evaluateLocked(context, arguments));
         });
     }
@@ -354,6 +370,7 @@ public class CompetitionModelLifecycleService {
             data.put("usageBoundary", metrics.get("usageBoundary"));
             return Map.copyOf(data);
         }
+        requireRehearsal();
         boolean passed = state.trainingCompleted() && state.targetRevision() == arguments.targetRevision();
         state.setEvaluationPassed(passed);
         return Map.of(
@@ -538,6 +555,7 @@ public class CompetitionModelLifecycleService {
             data.put("usageBoundary", "RESEARCH_ONLY / SIMULATION_ONLY");
             return Map.copyOf(data);
         }
+        requireRehearsal();
         boolean passed = state.trainingCompleted() && state.evaluationPassed() && state.registered()
                 && state.canaryPassed() && state.promoted()
                 && state.activeRevision() == arguments.targetRevision();
@@ -597,8 +615,14 @@ public class CompetitionModelLifecycleService {
         requireLegacyState();
         long startedNanos = System.nanoTime();
         String deploymentUid = deploymentUid(body.arguments());
+        if (!rehearsalEnabled && (!quantitativeRuntimeClient.supports(deploymentUid)
+                || !java.util.Set.of("mlops.training.search.start", "mlops.model.iteration.start", "mlops.model.register",
+                    "mlops.deployment.canary.apply", "mlops.deployment.promote", "mlops.deployment.rollback")
+                    .contains(body.toolName()))) {
+            throw new AgentContractException(503, "RUNTIME_NOT_CONFIGURED", "当前工具未连接实际执行器");
+        }
         String canonicalResourceId = canonicalResourceId(body.arguments());
-        CompetitionModelResourceBinding.forDeployment(deploymentUid).requireResource(canonicalResourceId);
+        resourceBinding(deploymentUid).requireResource(canonicalResourceId);
         if (!canonicalResourceId.equals(body.resourceId())) {
             throw new AgentContractException(400, "RESOURCE_ID_MISMATCH", "审批资源与工具参数指向的目标不一致");
         }
@@ -710,7 +734,7 @@ public class CompetitionModelLifecycleService {
                     String[] key = entry.getKey().split(":", -1);
                     if (key.length != 2 || key[0].isBlank()) throw new IllegalArgumentException("MEP canonical domain identity is invalid.");
                     requireText(key[0], "workspaceId");
-                    var binding = CompetitionModelResourceBinding.forDeployment(key[1]);
+                    var binding = resourceBinding(key[1]);
                     LifecycleSnapshot snapshot = candidate.decode(entry.getValue(), LifecycleSnapshot.class);
                     if (snapshot.activeRevision() < 1 || snapshot.targetRevision() < 1 || snapshot.resourceVersion() < 1
                             || snapshot.trafficPercent() < 0 || snapshot.trafficPercent() > 100)
@@ -806,7 +830,62 @@ public class CompetitionModelLifecycleService {
     private LifecycleState state(AgentContract.RequestContext context, String deploymentUid) {
         requireDeployment(deploymentUid);
         String key = context.workspaceId() + ":" + deploymentUid;
-        return incidentStates.computeIfAbsent(key, ignored -> new LifecycleState(deploymentUid));
+        return incidentStates.computeIfAbsent(key, ignored -> initialRuntimeState(deploymentUid));
+    }
+
+    /** 以部署配置登记资源关联，生产不隐式注册比赛目标。 Register resource associations explicitly without competition defaults. */
+    private CompetitionModelResourceBinding resourceBinding(String deploymentUid) {
+        if (rehearsalEnabled) return CompetitionModelResourceBinding.forDeployment(deploymentUid);
+        try {
+            JsonNode entries = checkpointMapper.readTree(resourceBindingsJson);
+            if (!entries.isArray() || entries.size() > 256) throw new IllegalArgumentException();
+            for (JsonNode entry : entries) {
+                if (!deploymentUid.equals(entry.path("deploymentUid").asText())) continue;
+                long revision = entry.path("candidateRevision").asLong();
+                String kind = entry.path("kind").asText();
+                if (!entry.path("candidateRevision").isIntegralNumber() || revision < 1 || !java.util.Set.of("quant", "recommendation", "risk").contains(kind)
+                        || !entry.path("resourceIds").isArray()) throw new IllegalArgumentException();
+                java.util.ArrayList<String> ids = new java.util.ArrayList<>();
+                for (JsonNode resource : entry.path("resourceIds")) {
+                    if (!resource.isTextual() || resource.asText().isBlank() || resource.asText().length() > 512)
+                        throw new IllegalArgumentException();
+                    ids.add(resource.asText());
+                }
+                if (ids.size() > 128 || !ids.contains(deploymentUid)
+                        || ids.size() != new java.util.HashSet<>(ids).size()) throw new IllegalArgumentException();
+                return new CompetitionModelResourceBinding(deploymentUid, revision, kind, List.copyOf(ids));
+            }
+        } catch (Exception invalid) {
+            throw new AgentContractException(503, "RESOURCE_CONFIGURATION_INVALID", "模型治理资源登记配置无效");
+        }
+        throw new AgentContractException(404, "RESOURCE_NOT_REGISTERED", "请登记该部署的治理资源关联");
+    }
+
+    /** 从实际运行时建立基线，缺失版本时不生成演示值。 Derive baseline from the runtime and refuse missing versions. */
+    private LifecycleState initialRuntimeState(String deploymentUid) {
+        if (rehearsalEnabled) return new LifecycleState(deploymentUid);
+        Map<String, Object> current = quantitativeRuntimeClient.supports(deploymentUid)
+                ? quantitativeRuntimeClient.deployment() : recommendationRuntimeClient.health();
+        Object revision = current.get("activeRevision");
+        Object version = current.get("resourceVersion");
+        if (!(revision instanceof Number active) || active.longValue() < 1 || version == null) {
+            throw new AgentContractException(503, "STATE_UNAVAILABLE", "运行时需要提供当前修订与资源版本，不能使用演示基线");
+        }
+        long resourceVersion;
+        try { resourceVersion = Long.parseLong(version.toString()); }
+        catch (NumberFormatException invalid) { throw new AgentContractException(502, "INVALID_RUNTIME_RESPONSE", "资源版本格式无效"); }
+        if (resourceVersion < 1) throw new AgentContractException(502, "INVALID_RUNTIME_RESPONSE", "资源版本必须为正数");
+        LifecycleState state = new LifecycleState(null);
+        state.setActiveRevision(active.longValue());
+        state.setTargetRevision(active.longValue());
+        state.setResourceVersion(resourceVersion);
+        state.setContractHealthy("MATCHED".equals(current.get("inputContractStatus")));
+        return state;
+    }
+
+    /** 禁止生产请求回退为预设数值。 Prevent production requests from falling back to preset numeric results. */
+    private void requireRehearsal() {
+        if (!rehearsalEnabled) throw new AgentContractException(503, "RUNTIME_NOT_CONFIGURED", "当前工具未连接实际执行器");
     }
 
     /** 推导强类型工具参数的规范治理目标。 / Derive the canonical governed target from typed tool arguments. */
@@ -825,9 +904,25 @@ public class CompetitionModelLifecycleService {
     /** 初始化平台登记资源，保留迁移后的已有版本。 / Initialize registered platform resources while preserving restored versions. */
     private void initializeResources(String workspaceId, String deploymentUid) {
         requireLegacyState();
-        incidentStates.computeIfAbsent(workspaceId + ":" + deploymentUid, ignored -> new LifecycleState(deploymentUid));
-        for (String resource : CompetitionModelResourceBinding.forDeployment(deploymentUid).resourceIds()) {
-            versionTracker.initializeResource(workspaceId, resource, 42L);
+        incidentStates.computeIfAbsent(workspaceId + ":" + deploymentUid, ignored -> initialRuntimeState(deploymentUid));
+        Map<String, Object> current = rehearsalEnabled ? Map.of()
+                : quantitativeRuntimeClient.supports(deploymentUid) ? quantitativeRuntimeClient.deployment()
+                : recommendationRuntimeClient.health();
+        Object versions = current.get("resourceVersions");
+        for (String resource : resourceBinding(deploymentUid).resourceIds()) {
+            long initialVersion = 42L;
+            if (!rehearsalEnabled) {
+                Object actual = versions instanceof Map<?, ?> registered ? registered.get(resource) : null;
+                if (actual == null && deploymentUid.equals(resource)) actual = current.get("resourceVersion");
+                try {
+                    if (actual == null) throw new IllegalArgumentException();
+                    initialVersion = Long.parseLong(actual.toString());
+                    if (initialVersion < 1) throw new IllegalArgumentException();
+                } catch (IllegalArgumentException missing) {
+                    throw new AgentContractException(503, "STATE_UNAVAILABLE", "运行时未提供目标资源的独立版本");
+                }
+            }
+            versionTracker.initializeResource(workspaceId, resource, initialVersion);
         }
     }
 
@@ -835,7 +930,7 @@ public class CompetitionModelLifecycleService {
     private Map<String, String> resourceVersions(String workspaceId, String deploymentUid) {
         requireLegacyState();
         Map<String, String> versions = new LinkedHashMap<>();
-        for (String resource : CompetitionModelResourceBinding.forDeployment(deploymentUid).resourceIds()) {
+        for (String resource : resourceBinding(deploymentUid).resourceIds()) {
             versions.put(resource, Long.toString(versionTracker.currentVersion(workspaceId, resource)));
         }
         return Map.copyOf(versions);
@@ -844,7 +939,7 @@ public class CompetitionModelLifecycleService {
     /** 保留业务字段并附加主目标和多资源实际版本。 / Preserve business fields and attach actual primary and per-resource versions. */
     private Map<String, Object> withResourceVersions(AgentContract.RequestContext context, String deploymentUid,
             String primaryResourceId, Map<String, Object> original) {
-        CompetitionModelResourceBinding.forDeployment(deploymentUid).requireResource(primaryResourceId);
+        resourceBinding(deploymentUid).requireResource(primaryResourceId);
         initializeResources(context.workspaceId(), deploymentUid);
         Map<String, Object> data = new LinkedHashMap<>(original);
         data.put("resourceVersion", Long.toString(versionTracker.currentVersion(context.workspaceId(), primaryResourceId)));
@@ -872,7 +967,7 @@ public class CompetitionModelLifecycleService {
                 if (old == null || binding == null) throw new IllegalArgumentException("Missing lifecycle state or binding.");
                 requireText(binding.workspaceId(), "workspaceId");
                 requireText(binding.incidentId(), "incidentId");
-                CompetitionModelResourceBinding resource = CompetitionModelResourceBinding.forDeployment(binding.deploymentUid());
+                CompetitionModelResourceBinding resource = resourceBinding(binding.deploymentUid());
                 if (binding.workspaceId().contains(":") || binding.incidentId().contains(":")
                         || !entry.getKey().equals(binding.workspaceId() + ":" + binding.incidentId())
                         || old.activeRevision() < 1 || old.targetRevision() < 1 || old.resourceVersion() < 1
@@ -966,9 +1061,9 @@ public class CompetitionModelLifecycleService {
         requireLegacyState();
         requireText(deploymentUid, "deploymentUid");
         if (!supports(deploymentUid)) {
-            throw new AgentContractException(404, "RESOURCE_NOT_FOUND", "比赛部署不存在");
+            throw new AgentContractException(404, "RESOURCE_NOT_FOUND", "部署未在当前运行环境登记");
         }
-        CompetitionModelResourceBinding.forDeployment(deploymentUid);
+        resourceBinding(deploymentUid);
     }
 
     /** 校验必填有界文本。 */

@@ -188,7 +188,7 @@ class CompetitionModelCheckpointTest {
     private CompetitionModelLifecycleService service(QuantitativeRuntimeClient runtime) {
         var verifier = mock(GovernedApprovalVerifier.class);
         when(verifier.verify(any(), any())).thenReturn(new GovernedApprovalVerifier.ApprovalDecision("approval", "approver", "executor", "arguments"));
-        return new CompetitionModelLifecycleService(verifier, runtime, mock(RecommendationRuntimeClient.class));
+        return new CompetitionModelLifecycleService(verifier, runtime, mock(RecommendationRuntimeClient.class), true);
     }
 
     /** 创建请求范围。 / Create request scope. */

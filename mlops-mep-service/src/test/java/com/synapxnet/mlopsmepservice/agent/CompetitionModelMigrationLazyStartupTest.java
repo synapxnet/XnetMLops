@@ -173,12 +173,12 @@ class CompetitionModelMigrationLazyStartupTest {
 
         /** 创建无联网依赖的真实状态所有者。 / Construct the real state owner with network-free dependencies. */
         static CompetitionModelLifecycleService createLifecycle() {
-            return new CompetitionModelLifecycleService(mock(GovernedApprovalVerifier.class), mock(QuantitativeRuntimeClient.class), mock(RecommendationRuntimeClient.class));
+            return new CompetitionModelLifecycleService(mock(GovernedApprovalVerifier.class), mock(QuantitativeRuntimeClient.class), mock(RecommendationRuntimeClient.class), true);
         }
 
         /** 提供实际状态所有者，禁止触发外部审批或平台请求。 / Provide the actual state owner without external approval or platform requests. */
         @Bean CompetitionModelLifecycleService lifecycleService() {
-            return new CompetitionModelLifecycleService(mock(GovernedApprovalVerifier.class), mock(QuantitativeRuntimeClient.class), mock(RecommendationRuntimeClient.class));
+            return new CompetitionModelLifecycleService(mock(GovernedApprovalVerifier.class), mock(QuantitativeRuntimeClient.class), mock(RecommendationRuntimeClient.class), true);
         }
 
         /** 未相关 Bean 若被提前创建则直接使测试失败。 / Fail if an unrelated Bean is created eagerly. */

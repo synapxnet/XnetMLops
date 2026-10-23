@@ -28,7 +28,6 @@ import java.util.Set;
 
 /** 仅代理登记的风险演练目标，不允许失败后回退旧状态。 / Proxy registered risk targets without fallback after failure. */
 public final class FeatureDriftRuntimeClient {
-    private static final String SOURCE_MODE = "REAL_CPU_SYNTHETIC_STAGING";
     private static final Map<String, String> ACTIONS = Map.ofEntries(
         Map.entry("dataops.feature.backfill.start", "backfill"),
         Map.entry("mlops.feature.pipeline.publish", "feature-publish"),
@@ -46,6 +45,7 @@ public final class FeatureDriftRuntimeClient {
         "dataops.schema.snapshot.get", "dataops.lineage.get", "dataops.workflow.instance.get",
         "dataops.dataset.validation.get", "mlops.deployment.get", "mlops.inference.probe",
         "mlops.release.validation.get", "mlops.attribution.report.get");
+    private Set<String> registeredResourceIds = Set.of();
     private final boolean enabled;
     private final URI base;
     private final String token;
@@ -94,12 +94,19 @@ public final class FeatureDriftRuntimeClient {
     public boolean handles(String tool, Object arguments) {
         if (!enabled || tool == null || !tool.startsWith(platform + ".") || (!READS.contains(tool) && !ACTIONS.containsKey(tool))) return false;
         Map<String, Object> args = arguments(arguments);
-        if (tool.startsWith("mlops.")) return "deploy_risk_prod".equals(args.get("deploymentUid"));
-        if (tool.startsWith("aiops.")) return "alert_risk_error_rate".equals(args.get("alertUid"))
-            || "alert_risk_error_rate".equals(args.get("alertId")) || "service_risk_inference".equals(args.get("serviceUid"));
-        return "asset_risk_features_prod".equals(args.get("assetUid")) || "qr_risk_features_120".equals(args.get("reportUid"))
-            || "task_risk_features_latest".equals(args.get("instanceUid"))
-            || "dataset_risk_repaired_19".equals(args.get("datasetUid"));
+        String[] keys = tool.startsWith("mlops.") ? new String[]{"deploymentUid"}
+            : tool.startsWith("aiops.") ? new String[]{"alertUid", "alertId", "serviceUid"}
+            : new String[]{"assetUid", "reportUid", "instanceUid", "datasetUid"};
+        for (String key : keys) if (args.get(key) instanceof String id && registeredResourceIds.contains(id)) return true;
+        return false;
+    }
+
+    /** 显式登记可代理的资源，默认没有比赛预置目标。 Explicitly register delegated resources without preloaded competition targets. */
+    public FeatureDriftRuntimeClient withRegisteredResources(Set<String> resourceIds) {
+        if (resourceIds == null || resourceIds.size() > 1024) throw new IllegalArgumentException("Invalid registered resources");
+        for (String id : resourceIds) requireId(id);
+        registeredResourceIds = Set.copyOf(resourceIds);
+        return this;
     }
 
     /** 代理已鉴权工具，并将运行时真实回执封装为原有公共契约。 / Proxy an authenticated tool and wrap actual runtime receipts in the existing contract. */
@@ -115,7 +122,8 @@ public final class FeatureDriftRuntimeClient {
         Object raw = result.get("data");
         if (!(raw instanceof Map<?, ?>)) throw error(502, "FEATURE_DRIFT_RESPONSE_INVALID");
         Map<String, Object> data = (Map<String, Object>) raw;
-        if (!SOURCE_MODE.equals(data.get("sourceMode")) || !context.workspaceId().equals(data.get("workspaceId"))
+        if (!(("PRODUCTION".equals(data.get("sourceMode")) && Boolean.FALSE.equals(data.get("synthetic")))
+                || ("REAL_CPU_SYNTHETIC_STAGING".equals(data.get("sourceMode")) && Boolean.TRUE.equals(data.get("synthetic")))) || !context.workspaceId().equals(data.get("workspaceId"))
                 || !context.incidentId().equals(data.get("incidentId")) || !context.traceId().equals(data.get("traceId"))) {
             throw error(502, "FEATURE_DRIFT_SCOPE_MISMATCH");
         }

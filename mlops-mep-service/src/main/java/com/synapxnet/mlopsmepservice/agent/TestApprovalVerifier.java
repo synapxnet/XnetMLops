@@ -17,6 +17,7 @@ import org.springframework.stereotype.Component;
  * 仅在显式 test Profile 中启用的固定审批验证器，禁止进入生产默认配置。
  */
 @Component
+@org.springframework.boot.autoconfigure.condition.ConditionalOnProperty(name = "openxnet.rehearsal.enabled", havingValue = "true")
 @Profile("test")
 public class TestApprovalVerifier implements ApprovalVerifier {
 
